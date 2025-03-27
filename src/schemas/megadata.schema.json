@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "erc721": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "external_url": {
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "attributes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "trait_type": {
+                "type": "string"
+              },
+              "value": {
+                "oneOf": [
+                  { "type": "string" },
+                  { "type": "number" }
+                ]
+              },
+              "display_type": {
+                "type": "string",
+                "enum": ["boost_number", "boost_percentage", "number"]
+              }
+            },
+            "required": ["trait_type", "value"]
+          }
+        }
+      },
+      "required": []
+    }
+  },
+  "required": ["erc721"]
+} 
