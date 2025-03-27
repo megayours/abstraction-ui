@@ -6,6 +6,7 @@ import { upsertMegaDataItem, createMegaDataCollection } from '@/lib/api/megaforw
 import { useWallet } from '@/contexts/WalletContext';
 import dynamic from 'next/dynamic';
 import { SignatureData, MegaDataItem } from '@/lib/types';
+import { config } from '@/lib/config';
 
 const JsonEditor = dynamic(() => import('@/components/JsonEditor'), { ssr: false });
 
@@ -220,12 +221,12 @@ export default function MegaData() {
               <div className="flex items-center gap-2 mb-4 p-2 bg-gray-50 rounded">
                 <span className="text-sm text-gray-600">Preview:</span>
                 <code className="text-sm bg-white px-2 py-1 rounded flex-1 overflow-x-auto">
-                  {`http://localhost:3000/megadata/${selectedItem.collection.substring(0, 4)}...${selectedItem.collection.substring(selectedItem.collection.length - 4)}/${selectedItem.tokenId}`}
+                  {`${config.megaRouterUri}/megadata/${selectedItem.collection.substring(0, 4)}...${selectedItem.collection.substring(selectedItem.collection.length - 4)}/${selectedItem.tokenId}`}
                 </code>
                 <button
                   onClick={() => {
                     navigator.clipboard.writeText(
-                      `http://localhost:3000/megadata/${selectedItem.collection}/${selectedItem.tokenId}`
+                      `${config.megaRouterUri}/megadata/${selectedItem.collection}/${selectedItem.tokenId}`
                     );
                   }}
                   className="text-blue-500 hover:text-blue-600 px-2 py-1"
