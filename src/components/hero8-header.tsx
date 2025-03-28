@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Menu, X, User, LogOut, Link as LinkIcon, Search, Database } from 'lucide-react'
+import { Menu, X, User, LogOut, Search, Database, Receipt } from 'lucide-react'
 import React from 'react'
 import Logo from './logo'
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from './ui/navigation-menu'
@@ -26,6 +26,13 @@ const menuItems: MenuItem[] = [
         href: '/megadata',
         icon: Database,
         description: 'On-chain metadata storage for your tokens.',
+        requiresAuth: true,
+    },
+    {
+        name: 'Assets',
+        href: '/assets',
+        icon: Receipt,
+        description: 'View tracked assets',
         requiresAuth: true,
     },
     {
