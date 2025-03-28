@@ -5,25 +5,29 @@ import { getCollections, getItems } from '@/lib/api/abstraction-chain';
 import { upsertMegaDataItem, createMegaDataCollection } from '@/lib/api/megaforwarder';
 import { useWallet } from '@/contexts/WalletContext';
 import dynamic from 'next/dynamic';
-import { SignatureData, MegaDataItem } from '@/lib/types';
+import { SignatureData, MegaDataItem, MegaDataCollection } from '@/lib/types';
 import { config } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Database, Plus, Code, Globe } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { CreateCollectionModal } from './components/CreateCollectionModal';
 
 const JsonEditor = dynamic(() => import('./components/JsonEditor'), { ssr: false });
 
 export default function MegaData() {
   const { account, signMessage, accountType } = useWallet();
-  const [collections, setCollections] = useState<string[]>([]);
+  const [collections, setCollections] = useState<MegaDataCollection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [items, setItems] = useState<MegaDataItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<MegaDataItem | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isCreatingItem, setIsCreatingItem] = useState(false);
   const [newItemName, setNewItemName] = useState('');
+  const [newCollectionName, setNewCollectionName] = useState('');
   const [editedProperties, setEditedProperties] = useState<Record<string, any>>({});
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isCreateCollectionModalOpen, setIsCreateCollectionModalOpen] = useState(false);
 
   useEffect(() => {
     if (account) {
@@ -60,7 +64,7 @@ export default function MegaData() {
     return `MegaYours MegaData Management: ${account} at ${timestamp}`;
   }
 
-  const handleCreateCollection = async () => {
+  const handleCreateCollection = async (name: string) => {
     if (!account || !signMessage) return;
     setIsCreatingCollection(true);
     try {
@@ -73,7 +77,7 @@ export default function MegaData() {
         account,
         signature
       };
-      await createMegaDataCollection(signatureData);
+      await createMegaDataCollection(signatureData, name);
       await loadCollections();
     } catch (error) {
       console.error('Failed to create collection:', error);
@@ -162,20 +166,26 @@ export default function MegaData() {
             >
               <option value="">Select a collection</option>
               {collections.map((collection) => (
-                <option key={collection} value={collection}>
-                  {collection}
+                <option key={collection.id} value={collection.id}>
+                  {collection.name}
                 </option>
               ))}
             </select>
             <Button
-              onClick={handleCreateCollection}
-              disabled={isCreatingCollection}
+              onClick={() => setIsCreateCollectionModalOpen(true)}
               className="shrink-0"
             >
               <Plus className="mr-2 h-4 w-4" />
-              {isCreatingCollection ? 'Creating...' : 'New Collection'}
+              New Collection
             </Button>
           </div>
+
+          <CreateCollectionModal
+            isOpen={isCreateCollectionModalOpen}
+            onClose={() => setIsCreateCollectionModalOpen(false)}
+            onCreate={handleCreateCollection}
+            isCreating={isCreatingCollection}
+          />
 
           {selectedCollection && (
             <>
@@ -263,7 +273,7 @@ export default function MegaData() {
                         variant="outline"
                       >
                         <Plus className="mr-2 h-4 w-4" />
-                        New Item
+                        Create
                       </Button>
                     </div>
                     <div className="p-6">

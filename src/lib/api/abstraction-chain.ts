@@ -1,5 +1,5 @@
 import { createClient, DictPair, IClient } from "postchain-client"
-import { ApiResponse, AssetFilter, ContractInfo, AccountLink, MegaDataItem } from "../types";
+import { ApiResponse, AssetFilter, ContractInfo, AccountLink, MegaDataItem, MegaDataCollection } from "../types";
 import { fromHexBuffer } from "../util";
 import { config } from "../config";
 
@@ -172,14 +172,15 @@ export async function unlinkAccounts(accountA: string, accountB: string) {
   });
 }
 
-export async function getCollections(owner: string) {
+export async function getCollections(owner: string): Promise<MegaDataCollection[]> {
   const client = await ensureClient();
-  console.log('Getting collections for owner:', owner);
-  const collections = await client.query<Buffer[]>('megadata.get_collections', {
+  const collections = await client.query<{ id: Buffer, name: string }[]>('megadata.get_collections', {
     owner
   });
-  console.log('Collections:', collections);
-  return collections.map(collection => fromHexBuffer(collection));
+  return collections.map(collection => ({
+    id: fromHexBuffer(collection.id),
+    name: collection.name
+  }));
 }
 
 export async function getItems(collection: string): Promise<MegaDataItem[]> {

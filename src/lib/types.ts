@@ -1,3 +1,8 @@
+export type MegaDataCollection = {
+  id: string;
+  name: string;
+}
+
 export type AssetFilter =  {
   source: string;
   asset: string;

@@ -63,14 +63,15 @@ export async function submitAccountLinkingRequest(signatures: SignatureData[]): 
   }
 }
 
-export async function createMegaDataCollection(signature: SignatureData): Promise<ApiResponse> {
+export async function createMegaDataCollection(signature: SignatureData, name: string): Promise<ApiResponse> {
   const response = await fetch(`${url}/task`, {
     method: 'POST',
     body: JSON.stringify({
       pluginId: 'manage-megadata',
       input: { 
         auth:signature,
-        operation: 'create_collection'
+        operation: 'create_collection',
+        name
       }
     })
   });
