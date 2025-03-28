@@ -1,81 +1,31 @@
-# Abstraction UI
-
-A modern web application for managing blockchain contracts and account links across different chains.
-
-## Features
-
-- Connect to EVM (Ethereum, Polygon) and Solana wallets
-- Register and manage blockchain contracts
-- Create and monitor account links between different chains
-- Real-time block height tracking
-- Modern and responsive UI
-
-## Tech Stack
-
-- Next.js 14
-- TypeScript
-- Tailwind CSS
-- Radix UI
-- Wagmi (EVM)
-- Solana Web3.js
-- WalletConnect
+This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
 
-1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/abstraction-ui.git
-cd abstraction-ui
-```
+First, run the development server:
 
-2. Install dependencies:
 ```bash
 bun install
+bun run dev
 ```
 
-3. Create a `.env.local` file in the root directory and add your WalletConnect project ID:
-```
-NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID=your_project_id
-```
+Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
 
-4. Start the development server:
-```bash
-bun dev
-```
+You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
-5. Open [http://localhost:3000](http://localhost:3000) in your browser.
+This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
-## Project Structure
+## Learn More
 
-```
-src/
-├── app/                    # Next.js app directory
-│   ├── api/               # API routes
-│   ├── account-links/     # Account links page
-│   ├── contracts/         # Contracts page
-│   └── page.tsx           # Home page
-├── components/            # React components
-│   ├── ui/               # UI components
-│   ├── Navigation.tsx    # Navigation component
-│   ├── WalletButton.tsx  # Wallet connection button
-│   └── WalletDialog.tsx  # Wallet connection dialog
-├── contexts/             # React contexts
-│   └── WalletContext.tsx # Wallet context
-└── lib/                  # Utility functions
-    ├── api.ts           # API utilities
-    ├── blockchain.ts    # Blockchain utilities
-    ├── types.ts         # TypeScript types
-    └── utils.ts         # General utilities
-```
+To learn more about Next.js, take a look at the following resources:
 
-## Contributing
+- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
+- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## License
+## Deploy on Vercel
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+
+Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.

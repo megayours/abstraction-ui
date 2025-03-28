@@ -209,35 +209,53 @@ export async function connectMetamask() {
   }
 }
 
-// Function to connect to Phantom (Solana)
-export async function connectPhantom() {
+// Function to connect to Phantom (Solana or EVM)
+export async function connectPhantom(type: 'evm' | 'solana' = 'solana') {
   if (typeof window === 'undefined') {
     throw new Error("Browser environment required");
   }
 
-  console.log("Checking for Phantom wallet:", {
-    solana: !!window.solana,
-    isPhantom: window.solana?.isPhantom,
-    connect: !!window.solana?.connect
-  });
-
-  if (!window.solana) {
-    throw new Error("Phantom wallet not found. Please install Phantom.");
-  }
-
-  try {
-    // Request connection
-    const response = await window.solana.connect();
-    console.log("Phantom connection response:", response);
-    
-    if (!response?.publicKey?.toString()) {
-      throw new Error("Failed to get public key from Phantom wallet");
+  if (type === 'evm') {
+    // Handle EVM connection
+    if (!window.ethereum?.isPhantom) {
+      throw new Error("Phantom EVM wallet not found. Please install Phantom.");
     }
-    
-    return response.publicKey.toString();
-  } catch (error) {
-    console.error("Detailed Phantom connection error:", error);
-    throw error;
+
+    try {
+      const accounts = await window.ethereum.request({
+        method: 'eth_requestAccounts'
+      }) as string[];
+      return accounts[0];
+    } catch (error) {
+      console.error("Error connecting to Phantom EVM:", error);
+      throw error;
+    }
+  } else {
+    // Handle Solana connection
+    console.log("Checking for Phantom wallet:", {
+      solana: !!window.solana,
+      isPhantom: window.solana?.isPhantom,
+      connect: !!window.solana?.connect
+    });
+
+    if (!window.solana) {
+      throw new Error("Phantom wallet not found. Please install Phantom.");
+    }
+
+    try {
+      // Request connection
+      const response = await window.solana.connect();
+      console.log("Phantom connection response:", response);
+      
+      if (!response?.publicKey?.toString()) {
+        throw new Error("Failed to get public key from Phantom wallet");
+      }
+      
+      return response.publicKey.toString();
+    } catch (error) {
+      console.error("Detailed Phantom connection error:", error);
+      throw error;
+    }
   }
 }
 

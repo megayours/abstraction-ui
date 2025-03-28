@@ -12,7 +12,7 @@ import {
   signWithWalletConnectSolana,
   disconnectWallet
 } from '@/lib/wallets';
-import { fetchAccountLinks } from '@/lib/api/abstraction-chain';
+import { fetchAccountLinks, unlinkAccounts } from '@/lib/api/abstraction-chain';
 import { toast } from 'sonner';
 import { submitAccountLinkingRequest } from '@/lib/api/megaforwarder';
 import { AccountLink } from '@/lib/types';
@@ -27,6 +27,7 @@ interface WalletContextType {
   disconnect: () => Promise<void>;
   signMessage: (message: string) => Promise<string>;
   linkAccount: (accountType: 'evm' | 'solana', walletType: 'phantom' | 'metamask' | 'walletconnect', timestamp: number, newAccount: string) => Promise<void>;
+  unlinkAccount: (linkedAccount: AccountLink) => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -37,6 +38,51 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [walletType, setWalletType] = useState<'phantom' | 'metamask' | 'walletconnect' | null>(null);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedAccounts, setConnectedAccounts] = useState<AccountLink[]>([]);
+
+  // Add initialization effect
+  useEffect(() => {
+    const initializeWallet = async () => {
+      const savedAccount = localStorage.getItem('walletAccount');
+      const savedAccountType = localStorage.getItem('walletAccountType') as 'evm' | 'solana' | null;
+      const savedWalletType = localStorage.getItem('walletType') as 'phantom' | 'metamask' | 'walletconnect' | null;
+
+      if (savedAccount && savedAccountType && savedWalletType) {
+        try {
+          setIsConnecting(true);
+          // Attempt to reconnect
+          let walletAddress = "";
+          
+          if (savedWalletType === 'metamask') {
+            walletAddress = await connectMetamask();
+          } else if (savedWalletType === 'phantom') {
+            walletAddress = await connectPhantom(savedAccountType);
+          } else {
+            walletAddress = savedAccountType === 'evm' 
+              ? await connectWalletConnectEVM()
+              : await connectWalletConnectSolana();
+          }
+
+          // Only restore if the addresses match
+          if (walletAddress.toLowerCase() === savedAccount.toLowerCase()) {
+            setAccount(walletAddress);
+            setAccountType(savedAccountType);
+            setWalletType(savedWalletType);
+          } else {
+            // Clear storage if addresses don't match
+            localStorage.removeItem('walletAccount');
+            localStorage.removeItem('walletAccountType');
+            localStorage.removeItem('walletType');
+          }
+        } catch (error) {
+          console.error("Failed to restore wallet connection:", error);
+        } finally {
+          setIsConnecting(false);
+        }
+      }
+    };
+
+    initializeWallet();
+  }, []);
 
   // Fetch connected accounts when account changes
   useEffect(() => {
@@ -56,13 +102,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       if (wallet === 'metamask') {
         walletAddress = await connectMetamask();
       } else if (wallet === 'phantom') {
-        walletAddress = await connectPhantom();
+        walletAddress = await connectPhantom(type);
       } else {
-        // WalletConnect
         walletAddress = type === 'evm' 
           ? await connectWalletConnectEVM()
           : await connectWalletConnectSolana();
       }
+
+      // Save to localStorage
+      localStorage.setItem('walletAccount', walletAddress);
+      localStorage.setItem('walletAccountType', type);
+      localStorage.setItem('walletType', wallet);
 
       setAccount(walletAddress);
       setAccountType(type);
@@ -81,9 +131,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     if (!accountType || !walletType) return;
     
     try {
-      // Convert wallet type to native/walletconnect for disconnect function
       const disconnectWalletType = walletType === 'walletconnect' ? 'walletconnect' : 'native';
       await disconnectWallet(accountType, disconnectWalletType);
+      
+      // Clear localStorage
+      localStorage.removeItem('walletAccount');
+      localStorage.removeItem('walletAccountType');
+      localStorage.removeItem('walletType');
+
       setAccount(null);
       setAccountType(null);
       setWalletType(null);
@@ -191,6 +246,24 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const unlinkAccount = async (linkedAccount: AccountLink) => {
+    if (!account) {
+      throw new Error("No wallet connected");
+    }
+
+    try {
+      await unlinkAccounts(account, linkedAccount.account);
+      // Refresh the connected accounts list
+      const updatedAccounts = await fetchAccountLinks(account);
+      setConnectedAccounts(updatedAccounts);
+      toast.success("Account unlinked successfully");
+    } catch (error) {
+      console.error("Error unlinking account:", error);
+      toast.error(`Failed to unlink account: ${error instanceof Error ? error.message : String(error)}`);
+      throw error;
+    }
+  };
+
   return (
     <WalletContext.Provider value={{
       account,
@@ -202,6 +275,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       disconnect,
       signMessage,
       linkAccount,
+      unlinkAccount
     }}>
       {children}
     </WalletContext.Provider>

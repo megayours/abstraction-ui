@@ -7,8 +7,10 @@ import { useWallet } from '@/contexts/WalletContext';
 import dynamic from 'next/dynamic';
 import { SignatureData, MegaDataItem } from '@/lib/types';
 import { config } from '@/lib/config';
+import { Button } from '@/components/ui/button';
+import { Database, Plus, Code, Globe } from 'lucide-react';
 
-const JsonEditor = dynamic(() => import('@/components/JsonEditor'), { ssr: false });
+const JsonEditor = dynamic(() => import('./components/JsonEditor'), { ssr: false });
 
 export default function MegaData() {
   const { account, signMessage, accountType } = useWallet();
@@ -90,7 +92,7 @@ export default function MegaData() {
 
   const handleSaveItem = async () => {
     if (!selectedCollection || !account || !signMessage || !accountType) return;
-    
+
     const itemToSave = isCreatingItem ? newItemName : selectedItem?.tokenId;
     if (!itemToSave) return;
 
@@ -132,136 +134,213 @@ export default function MegaData() {
 
   if (!account) {
     return (
-      <div className="p-4">
-        <h1 className="text-2xl font-bold mb-4">MegaData Editor</h1>
-        <p>Please connect your wallet to access the MegaData editor.</p>
-      </div>
+      <section className="py-12 md:py-30">
+        <div className="mx-auto max-w-5xl px-6">
+          <div className="text-center space-y-6">
+            <h1 className="text-balance text-4xl font-medium lg:text-5xl">MegaData</h1>
+            <p className="text-lg text-muted-foreground">Please connect your wallet to access the MegaData editor.</p>
+          </div>
+        </div>
+      </section>
     );
   }
 
   return (
-    <div className="p-4">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold mb-4">MegaData Editor</h1>
-        <div className="flex items-center gap-4 mb-4">
-          <select
-            className="border rounded p-2 flex-grow"
-            value={selectedCollection}
-            onChange={(e) => setSelectedCollection(e.target.value)}
-          >
-            <option value="">Select a collection</option>
-            {collections.map((collection) => (
-              <option key={collection} value={collection}>
-                {collection}
-              </option>
-            ))}
-          </select>
-          <button
-            onClick={handleCreateCollection}
-            disabled={isCreatingCollection}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-          >
-            {isCreatingCollection ? 'Creating...' : 'New Collection'}
-          </button>
+    <section className="py-12 md:py-30">
+      <div className="mx-auto max-w-5xl px-6">
+        <div className="text-center space-y-6 mb-12">
+          <h1 className="text-balance text-4xl font-medium lg:text-5xl">MegaData</h1>
+          <p className="text-lg text-muted-foreground">Create and manage your on-chain token metadata</p>
+        </div>
+
+        <div className="space-y-6">
+          <div className="flex items-center gap-4">
+            <select
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+              value={selectedCollection}
+              onChange={(e) => setSelectedCollection(e.target.value)}
+            >
+              <option value="">Select a collection</option>
+              {collections.map((collection) => (
+                <option key={collection} value={collection}>
+                  {collection}
+                </option>
+              ))}
+            </select>
+            <Button
+              onClick={handleCreateCollection}
+              disabled={isCreatingCollection}
+              className="shrink-0"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              {isCreatingCollection ? 'Creating...' : 'New Collection'}
+            </Button>
+          </div>
+
+          {selectedCollection && (
+            <>
+              <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+
+                <div className="p-6">
+                  <div className="space-y-4">
+                    <p className="text-sm text-muted-foreground">
+                      Your token metadata is accessible through a structured URL. Each part represents a specific component:
+                    </p>
+                    <div className="flex flex-col gap-3">
+                      <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
+                        <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <code className="text-sm font-mono text-muted-foreground">
+                          {config.megaRouterUri}
+                        </code>
+                        <span className="text-xs text-muted-foreground">/</span>
+                        <code className="text-sm font-mono text-muted-foreground">
+                          megadata
+                        </code>
+                        <span className="text-xs text-muted-foreground">/</span>
+                        <code className="text-sm font-mono">
+                          {`${selectedCollection.substring(0, 6)}...${selectedCollection.substring(selectedCollection.length - 4)}`}
+                        </code>
+                        {selectedItem && !isCreatingItem && (
+                          <>
+                            <span className="text-xs text-muted-foreground">/</span>
+                            <code className="text-sm font-mono text-primary">
+                              {selectedItem.tokenId}
+                            </code>
+                          </>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="text-xs"
+                            onClick={() => {
+                              navigator.clipboard.writeText(
+                                `${config.megaRouterUri}/megadata/${selectedCollection}/`
+                              );
+                            }}
+                          >
+                            Copy Collection Base URI
+                          </Button>
+                          <span className="text-sm text-muted-foreground">
+                            Use this to get the base URI for the entire collection
+                          </span>
+                        </div>
+                        {selectedItem && !isCreatingItem && (
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-xs"
+                              onClick={() => {
+                                navigator.clipboard.writeText(
+                                  `${config.megaRouterUri}/megadata/${selectedCollection}/${selectedItem.tokenId}`
+                                );
+                              }}
+                            >
+                              Copy Full URI
+                            </Button>
+                            <span className="text-sm text-muted-foreground">
+                              Use this to get the complete URI including the token ID
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid gap-6 lg:grid-cols-3">
+                <div className="lg:col-span-1">
+                  <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                    <div className="flex items-center justify-between p-6 border-b">
+                      <h2 className="text-lg font-semibold">Tokens</h2>
+                      <Button
+                        onClick={handleCreateItem}
+                        size="sm"
+                        variant="outline"
+                      >
+                        <Plus className="mr-2 h-4 w-4" />
+                        New Item
+                      </Button>
+                    </div>
+                    <div className="p-6">
+                      <div className="space-y-2">
+                        {items.map((item) => (
+                          <div
+                            key={item.tokenId}
+                            onClick={() => {
+                              if (hasUnsavedChanges) {
+                                if (window.confirm('You have unsaved changes. Do you want to discard them?')) {
+                                  setSelectedItem(item);
+                                }
+                              } else {
+                                setSelectedItem(item);
+                              }
+                            }}
+                            className={`flex items-center p-3 rounded-md cursor-pointer transition-colors ${
+                              selectedItem?.tokenId === item.tokenId
+                                ? 'bg-accent text-accent-foreground'
+                                : 'hover:bg-muted'
+                            }`}
+                          >
+                            <Database className="mr-2 h-4 w-4" />
+                            {item.tokenId}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="lg:col-span-2">
+                  <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                    <div className="flex items-center justify-between p-6 border-b">
+                      <h2 className="text-lg font-semibold">
+                        {isCreatingItem ? 'New Item' : selectedItem ? `MegaData` : 'Select a token'}
+                      </h2>
+                      {isCreatingItem && (
+                        <input
+                          type="text"
+                          value={newItemName}
+                          onChange={(e) => setNewItemName(e.target.value)}
+                          placeholder="Enter item name"
+                          className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                        />
+                      )}
+                    </div>
+                    {(selectedItem || isCreatingItem) && (
+                      <div className="p-6 space-y-4">
+                        <div className="h-[500px] rounded-md border">
+                          <JsonEditor
+                            value={editedProperties}
+                            onChange={handleJsonChange}
+                          />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                          {hasUnsavedChanges && (
+                            <span className="text-yellow-600 self-center mr-2">
+                              You have unsaved changes
+                            </span>
+                          )}
+                          <Button
+                            onClick={handleSaveItem}
+                            disabled={isSaving || (!isCreatingItem && !hasUnsavedChanges)}
+                          >
+                            {isSaving ? 'Saving...' : 'Save Changes'}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </div>
-
-      {selectedCollection && (
-        <div className="flex gap-4">
-          <div className="w-1/3 border rounded p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">Tokens</h2>
-              <button
-                onClick={handleCreateItem}
-                className="bg-green-500 text-white px-3 py-1 rounded hover:bg-green-600"
-              >
-                New Item
-              </button>
-            </div>
-            <div className="space-y-2">
-              {items.map((item) => (
-                <div
-                  key={item.tokenId}
-                  onClick={() => {
-                    if (hasUnsavedChanges) {
-                      if (window.confirm('You have unsaved changes. Do you want to discard them?')) {
-                        setSelectedItem(item);
-                      }
-                    } else {
-                      setSelectedItem(item);
-                    }
-                  }}
-                  className={`p-2 rounded cursor-pointer ${
-                    selectedItem?.tokenId === item.tokenId
-                      ? 'bg-blue-100'
-                      : 'hover:bg-gray-100'
-                  }`}
-                >
-                  {item.tokenId}
-                </div>
-              ))}
-            </div>
-          </div>
-          <div className="w-2/3 border rounded p-4">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-semibold">
-                {isCreatingItem ? 'New Item' : selectedItem ? `Editing token ${selectedItem.tokenId}` : 'Select an item'}
-              </h2>
-              {isCreatingItem && (
-                <input
-                  type="text"
-                  value={newItemName}
-                  onChange={(e) => setNewItemName(e.target.value)}
-                  placeholder="Enter item name"
-                  className="border rounded px-2 py-1"
-                />
-              )}
-            </div>
-            {selectedItem && !isCreatingItem && (
-              <div className="flex items-center gap-2 mb-4 p-2 bg-gray-50 rounded">
-                <span className="text-sm text-gray-600">Preview:</span>
-                <code className="text-sm bg-white px-2 py-1 rounded flex-1 overflow-x-auto">
-                  {`${config.megaRouterUri}/megadata/${selectedItem.collection.substring(0, 4)}...${selectedItem.collection.substring(selectedItem.collection.length - 4)}/${selectedItem.tokenId}`}
-                </code>
-                <button
-                  onClick={() => {
-                    navigator.clipboard.writeText(
-                      `${config.megaRouterUri}/megadata/${selectedItem.collection}/${selectedItem.tokenId}`
-                    );
-                  }}
-                  className="text-blue-500 hover:text-blue-600 px-2 py-1"
-                >
-                  Copy
-                </button>
-              </div>
-            )}
-            {(selectedItem || isCreatingItem) && (
-              <div className="space-y-4">
-                <div className="h-[500px] border rounded overflow-hidden">
-                  <JsonEditor
-                    value={editedProperties}
-                    onChange={handleJsonChange}
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  {hasUnsavedChanges && (
-                    <span className="text-yellow-600 self-center mr-2">
-                      You have unsaved changes
-                    </span>
-                  )}
-                  <button
-                    onClick={handleSaveItem}
-                    disabled={isSaving || (isCreatingItem && !newItemName) || !hasUnsavedChanges}
-                    className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 disabled:opacity-50"
-                  >
-                    {isSaving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </section>
   );
 } 

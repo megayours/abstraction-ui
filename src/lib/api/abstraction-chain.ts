@@ -33,13 +33,13 @@ export async function fetchSources(): Promise<string[]> {
 // Fetch available assets for a given source
 export async function fetchAssets(source: string): Promise<string[]> {
   if (!source) return [];
-  
+
   try {
     const client = await ensureClient();
     const assets = await client.query<string[]>('airdrop.get_assets', {
       source
     });
-    
+
     console.log('Fetched assets for source', source, ':', assets);
     return assets;
   } catch (error) {
@@ -147,10 +147,10 @@ export async function removeAssetGroupFilter(
 export async function fetchAccountLinks(search?: string): Promise<AccountLink[]> {
   try {
     const client = await ensureClient();
-    const links = await client.query<Array<{account: string, link: string}>>('account_links.get_account_links', {
+    const links = await client.query<Array<{ account: string, link: string }>>('account_links.get_account_links', {
       search: search || null
     });
-    
+
     console.log('Fetched account links:', links);
     return links;
   } catch (error) {
