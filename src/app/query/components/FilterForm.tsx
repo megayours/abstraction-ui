@@ -5,14 +5,16 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { AssetFilter } from '@/lib/types';
 import { fetchSources, fetchAssets } from '@/lib/api/abstraction-chain';
+import { formatAddress } from '@/lib/util';
 
 export interface FilterFormProps {
   onSubmit: (filter: AssetFilter) => Promise<void>;
   onEdit?: (filter: AssetFilter) => Promise<void>;
   initialValues?: AssetFilter;
+  currentFilters: AssetFilter[];
 }
 
-export function FilterForm({ onSubmit, onEdit, initialValues }: FilterFormProps) {
+export function FilterForm({ onSubmit, onEdit, initialValues, currentFilters }: FilterFormProps) {
   const [sources, setSources] = useState<string[]>([]);
   const [assets, setAssets] = useState<string[]>([]);
   const [selectedSource, setSelectedSource] = useState<string>('');
@@ -53,6 +55,14 @@ export function FilterForm({ onSubmit, onEdit, initialValues }: FilterFormProps)
     loadAssets();
   }, [selectedSource]);
 
+  // Check if an asset is already used in a filter
+  const isAssetUsed = (asset: string) => {
+    return currentFilters.some(filter => 
+      filter.source === selectedSource && filter.asset === asset && 
+      (!initialValues || initialValues.asset !== asset)
+    );
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedSource || !selectedAsset || isSubmitting) {
@@ -92,14 +102,16 @@ export function FilterForm({ onSubmit, onEdit, initialValues }: FilterFormProps)
           value={selectedSource}
           onValueChange={setSelectedSource}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select a source" />
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select a source" className="text-ellipsis" />
           </SelectTrigger>
           <SelectContent>
             {sources.map((source) => (
               <SelectItem
                 key={source}
                 value={source}
+                className="truncate"
+                title={source}
               >
                 {source}
               </SelectItem>
@@ -115,18 +127,24 @@ export function FilterForm({ onSubmit, onEdit, initialValues }: FilterFormProps)
           onValueChange={setSelectedAsset}
           disabled={!selectedSource}
         >
-          <SelectTrigger>
-            <SelectValue placeholder="Select an asset" />
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder="Select an asset" className="text-ellipsis" />
           </SelectTrigger>
           <SelectContent>
-            {assets.map((asset) => (
-              <SelectItem
-                key={asset}
-                value={asset}
-              >
-                {asset}
-              </SelectItem>
-            ))}
+            {assets.map((asset) => {
+              const isUsed = isAssetUsed(asset);
+              return (
+                <SelectItem
+                  key={asset}
+                  value={asset}
+                  className={`truncate ${isUsed ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  title={`${formatAddress(asset)}${isUsed ? ' (already in use)' : ''}`}
+                  disabled={isUsed}
+                >
+                  {formatAddress(asset)}
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>

@@ -1,5 +1,6 @@
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { formatAddress } from "@/lib/util";
 
 export interface ResultsTableProps {
   results: string[][];
@@ -26,9 +27,6 @@ export function ResultsTable({
   }
   return (
     <div className="space-y-4">
-      <div className="flex justify-between items-center">
-        <h3 className="text-lg font-semibold">Query Results</h3>
-      </div>
 
       {/* <div className="flex gap-4">
         <div className="space-y-2 flex-1">
@@ -66,7 +64,7 @@ export function ResultsTable({
                 <tr key={index} className="border-t">
                   {Array.from({ length: maxAccounts }, (_, i) => (
                     <td key={i} className="px-4 py-2">
-                      {row[i] || ''}
+                      {formatAddress(row[i]) || ''}
                     </td>
                   ))}
                 </tr>

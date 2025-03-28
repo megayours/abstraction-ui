@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { useWallet } from '@/contexts/WalletContext';
 import { Plus } from 'lucide-react';
 import { AssetRegistrationModal } from './components/AssetRegistrationModal';
+import { formatAddress } from '@/lib/util';
 
 export default function QueryPage() {
   const { account } = useWallet();
@@ -197,13 +198,19 @@ export default function QueryPage() {
                   {/* Group Management */}
                   <div className="flex items-center gap-3">
                     <select
-                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-sm transition-colors placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 text-ellipsis"
                       value={selectedGroupId || ''}
                       onChange={(e) => handleGroupSelect(e.target.value)}
+                      style={{ textOverflow: 'ellipsis' }}
                     >
                       <option value="">Select a saved group</option>
                       {assetGroups.map((group) => (
-                        <option key={group.id} value={group.id}>
+                        <option 
+                          key={group.id} 
+                          value={group.id}
+                          style={{ textOverflow: 'ellipsis', overflow: 'hidden', whiteSpace: 'nowrap' }}
+                          title={group.id}
+                        >
                           {group.id}
                         </option>
                       ))}
@@ -221,27 +228,15 @@ export default function QueryPage() {
                   {/* Asset Registration Button */}
                   <div className="flex items-center justify-between">
                     <h2 className="text-lg font-medium">Build Query</h2>
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => setIsAssetRegistrationOpen(true)}
-                        className="shrink-0"
-                      >
-                        <Plus className="h-4 w-4 mr-2" />
-                        Register Asset
-                      </Button>
-                      {filters.length > 0 && (
-                        <Button 
-                          variant="ghost"
-                          size="sm"
-                          onClick={handleClearFilters}
-                          className="text-xs"
-                        >
-                          Clear All
-                        </Button>
-                      )}
-                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setIsAssetRegistrationOpen(true)}
+                      className="shrink-0"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Register Asset
+                    </Button>
                   </div>
 
                   {/* Filter Form */}
@@ -250,13 +245,24 @@ export default function QueryPage() {
                       onSubmit={handleAddFilter}
                       onEdit={editingFilterIndex !== null ? (filter) => handleEditFilter(editingFilterIndex!, filter) : undefined}
                       initialValues={editingFilterIndex !== null ? filters[editingFilterIndex] : undefined}
+                      currentFilters={filters}
                     />
                   </div>
 
                   {/* Active Filters */}
                   {filters.length > 0 && (
                     <div className="space-y-3">
-                      <h3 className="text-sm font-medium text-muted-foreground">Active Filters</h3>
+                      <div className="flex items-center justify-between">
+                        <h3 className="text-sm font-medium text-muted-foreground">Active Filters</h3>
+                        <Button 
+                          variant="ghost"
+                          size="sm"
+                          onClick={handleClearFilters}
+                          className="text-xs h-7"
+                        >
+                          Clear All
+                        </Button>
+                      </div>
                       <div className="space-y-2">
                         {filters.map((filter, index) => (
                           <div 
@@ -266,7 +272,7 @@ export default function QueryPage() {
                             <div className="flex-1 space-y-1 min-w-0">
                               <div className="font-medium">{filter.source}</div>
                               <div className="text-muted-foreground truncate">
-                                Asset: {filter.asset}
+                                Asset: {formatAddress(filter.asset)}
                               </div>
                               <div className="text-muted-foreground">
                                 Required: {filter.requires}

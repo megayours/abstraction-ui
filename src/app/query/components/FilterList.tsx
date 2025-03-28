@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { AssetFilter } from '@/lib/types';
+import { formatAddress } from "@/lib/util";
 
 export interface FilterListProps {
   filters: AssetFilter[];
@@ -35,7 +36,7 @@ export function FilterList({ filters, onRemove, onEdit, onClear }: FilterListPro
             <div className="space-y-1">
               <div className="font-medium">Contract: {filter.source}</div>
               <div className="text-sm text-muted-foreground">
-                Asset: {filter.asset}
+                Asset: {formatAddress(filter.asset)}
               </div>
               <div className="text-sm text-muted-foreground">
                 Required Balance: {filter.requires}

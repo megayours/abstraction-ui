@@ -1,4 +1,4 @@
-import { ApiResponse, SignatureData, AssetFilter } from "../types";
+import { ApiResponse, SignatureData } from "../types";
 import { config } from "../config";
 
 const url = config.megaForwarderUri;
