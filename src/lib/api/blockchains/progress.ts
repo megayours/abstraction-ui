@@ -4,8 +4,8 @@ import { ethers } from "ethers"
 
 interface ChainProgress {
   chain: string
-  currentUnit: bigint
-  indexedUnit: bigint
+  currentUnit: number
+  indexedUnit: number
   progress: number
   isBehind: boolean
 }
@@ -47,14 +47,14 @@ const getChainBlockHeight = async (chain: string): Promise<number> => {
   }
 }
 
-export const getIndexingProgress = async (chain: string, indexedUnit: bigint): Promise<ChainProgress> => {
+export const getIndexingProgress = async (chain: string, indexedUnit: number): Promise<ChainProgress> => {
   const currentUnit = await getChainBlockHeight(chain)
-  const progress = (Number(indexedUnit) / currentUnit) * 100
-  const isBehind = currentUnit - Number(indexedUnit) > 100 // Consider it behind if more than 100 blocks behind
+  const progress = (indexedUnit / currentUnit) * 100
+  const isBehind = currentUnit - indexedUnit > 100 // Consider it behind if more than 100 blocks behind
 
   return {
     chain,
-    currentUnit: BigInt(currentUnit),
+    currentUnit,
     indexedUnit,
     progress,
     isBehind

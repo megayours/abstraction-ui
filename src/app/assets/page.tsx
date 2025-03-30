@@ -15,8 +15,8 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface AssetWithProgress extends AssetInfo {
   progress?: {
-    currentUnit: bigint
-    indexedUnit: bigint
+    currentUnit: number
+    indexedUnit: number
     progress: number
     isBehind: boolean
   }

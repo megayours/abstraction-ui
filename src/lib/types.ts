@@ -19,7 +19,7 @@ export type AssetGroup = {
 export type AssetInfo = {
   source: string;
   id: string;
-  unit: bigint;
+  unit: number;
   name: string;
   type: string;
 }
