@@ -67,9 +67,19 @@ export async function fetchEligibleAccounts(filters: AssetFilter[], from?: strin
   return results;
 }
 
-export const getContracts = async () => {
+export const getSources = async () => {
   const client = await ensureClient();
-  return client.query<AssetInfo[]>('assets.get_assets_info', { type: null })
+  return client.query<string[]>('assets.get_sources', {});
+}
+
+export const getTypes = async ({ source }: { source?: string }) => {
+  const client = await ensureClient();
+  return client.query<string[]>('assets.get_types', { source: source || null });
+}
+
+export const getContracts = async ({ source, type }: { source?: string, type?: string }) => {
+  const client = await ensureClient();
+  return client.query<AssetInfo[]>('assets.get_assets_info', { source: source || null, type: type || null })
 }
 
 export const fetchAssetGroups = async () => {
