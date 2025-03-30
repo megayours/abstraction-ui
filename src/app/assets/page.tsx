@@ -3,20 +3,20 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { getContracts } from "@/lib/api/abstraction-chain"
-import { ContractInfo } from "@/lib/types"
+import { AssetInfo } from "@/lib/types"
 import Ethereum from "@/components/logos/ethereum"
 import Solana from "@/components/logos/solana"
 import BNB from "@/components/logos/bnb"
-import { formatAddress, fromHexBuffer } from "@/lib/util"
+import { formatAddress } from "@/lib/util"
 import { getIndexingProgress } from "@/lib/api/blockchains/progress"
 import { Progress } from "@/components/ui/progress"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
-interface ContractWithProgress extends ContractInfo {
+interface AssetWithProgress extends AssetInfo {
   progress?: {
-    currentBlock: number
-    indexedBlock: number
+    currentUnit: bigint
+    indexedUnit: bigint
     progress: number
     isBehind: boolean
   }
@@ -38,7 +38,7 @@ const ChainIcon = ({ chain }: { chain: string }) => {
 }
 
 export default function AssetsPage() {
-  const [contracts, setContracts] = useState<ContractWithProgress[]>([])
+  const [contracts, setContracts] = useState<AssetWithProgress[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -48,10 +48,10 @@ export default function AssetsPage() {
         const contractsWithProgress = await Promise.all(
           data.map(async (contract) => {
             try {
-              const progress = await getIndexingProgress(contract.chain, contract.block_number)
+              const progress = await getIndexingProgress(contract.source, contract.unit)
               return { ...contract, progress }
             } catch (error) {
-              console.error(`Failed to get progress for contract on ${contract.chain}:`, error)
+              console.error(`Failed to get progress for contract on ${contract.source}:`, error)
               return contract
             }
           })
@@ -93,19 +93,19 @@ export default function AssetsPage() {
               <CardHeader className="flex flex-row items-start justify-between pb-6 border-b">
                 <div className="space-y-2">
                   <CardTitle className="text-2xl font-semibold">
-                    {contract.collection}
+                    {contract.name}
                   </CardTitle>
                   <div className="font-mono text-sm text-muted-foreground break-all">
-                    {formatAddress(fromHexBuffer(contract.contract))}
+                    {formatAddress(contract.id)}
                   </div>
                 </div>
-                <ChainIcon chain={contract.chain} />
+                <ChainIcon chain={contract.source} />
               </CardHeader>
               <CardContent className="pt-6 space-y-6">
                 <div className="grid grid-cols-2 gap-x-8 gap-y-4">
                   <div>
                     <div className="text-sm font-medium text-muted-foreground mb-1">Block Height</div>
-                    <div className="text-lg">{contract.block_number.toLocaleString()}</div>
+                    <div className="text-lg">{contract.unit.toLocaleString()}</div>
                   </div>
                   <div>
                     <div className="text-sm font-medium text-muted-foreground mb-1">Type</div>
@@ -124,7 +124,7 @@ export default function AssetsPage() {
                       <Alert variant="destructive" className="mt-3">
                         <AlertCircle className="h-4 w-4" />
                         <AlertDescription>
-                          Indexer is {contract.progress.currentBlock - contract.progress.indexedBlock} blocks behind
+                          Indexer is {contract.progress.currentUnit - contract.progress.indexedUnit} blocks behind
                         </AlertDescription>
                       </Alert>
                     )}

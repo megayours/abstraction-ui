@@ -1,5 +1,5 @@
 import { createClient, DictPair, IClient } from "postchain-client"
-import { ApiResponse, AssetFilter, ContractInfo, AccountLink, MegaDataItem, MegaDataCollection } from "../types";
+import { ApiResponse, AssetFilter, AssetInfo, AccountLink, MegaDataItem, MegaDataCollection } from "../types";
 import { fromHexBuffer } from "../util";
 import { config } from "../config";
 
@@ -69,7 +69,7 @@ export async function fetchEligibleAccounts(filters: AssetFilter[], from?: strin
 
 export const getContracts = async () => {
   const client = await ensureClient();
-  return client.query<ContractInfo[]>('evm.get_contracts_info', { type: null })
+  return client.query<AssetInfo[]>('assets.get_assets_info', { type: null })
 }
 
 export const fetchAssetGroups = async () => {

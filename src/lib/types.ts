@@ -16,11 +16,11 @@ export type AssetGroup = {
   updated_at: number;
 }
 
-export type ContractInfo = {
-  chain: string;
-  contract: Buffer;
-  block_number: number;
-  collection: string;
+export type AssetInfo = {
+  source: string;
+  id: string;
+  unit: bigint;
+  name: string;
   type: string;
 }
 
