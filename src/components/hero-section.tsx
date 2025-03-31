@@ -42,30 +42,24 @@ export default function HeroSection() {
 
     return (
         <>
-            <main className="overflow-x-hidden">
+            <main className="overflow-x-hidden pb-24">
                 <section>
-                    <motion.div
-                        style={{
-                            opacity,
-                            filter: `blur(${blur}px)`,
-                            transform: `scale(${scale.get()})`,
-                            willChange: 'transform, filter, opacity'
-                        }}
-                        className="pb-24 pt-12 md:pb-32 lg:pb-56 lg:pt-44"
+                    <div
+                        className="pb-12 pt-24 md:pb-12 md:pt-16 lg:pb-32 lg:pt-32"
                         ref={ref}
                     >
-                        <div className="relative mx-auto flex max-w-6xl flex-col px-6 lg:block">
+                        <div className="relative mx-auto flex max-w-6xl flex-col px-4 lg:block">
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:w-1/2 lg:text-left">
-                                <h1 className="font-serif mt-8 max-w-2xl text-balance text-5xl font-medium md:text-6xl lg:mt-16 xl:text-7xl">
+                                <h1 className="font-serif max-w-2xl text-balance text-4xl font-medium md:text-5xl lg:mt-16 xl:text-7xl">
                                     MegaTokens
                                 </h1>
-                                <p className="mt-8 max-w-2xl text-pretty text-lg">
+                                <p className="mt-2 md:mt-4 max-w-2xl text-pretty text-base md:text-lg">
                                     Fully on-chain programmable tokens and metadata.
                                     On-chain metadata enables the creation of rich and dynamic experiences where
                                     the token can evolve over time.
                                 </p>
 
-                                <div className="mt-12 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
+                                <div className="mt-4 md:mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
                                     <Button
                                         asChild
                                         size="lg"
@@ -85,11 +79,7 @@ export default function HeroSection() {
                             </div>
 
                             <motion.div
-                                style={{
-                                    scale,
-                                    opacity
-                                }}
-                                initial={{ scale: 0.8, opacity: 0 }}
+                                initial={{ scale: 1, opacity: 1 }}
                                 whileInView={{ scale: 1, opacity: 1 }}
                                 viewport={{ once: true }}
                                 transition={{ duration: 0.8, ease: "easeOut" }}
@@ -107,15 +97,15 @@ export default function HeroSection() {
                                 />
                             </motion.div>
                         </div>
-                    </motion.div>
+                    </div>
                 </section>
-                <section className="bg-background pb-16 md:pb-32">
-                    <div className="group relative m-auto max-w-6xl px-6">
+                <section className="bg-background pb-2 md:pb-8 lg:pb-16 md:pt-16">
+                    <div className="group relative m-auto max-w-6xl px-4 md:px-6">
                         <div className="flex flex-col items-center md:flex-row">
                             <div className="md:max-w-44 md:border-r md:pr-6">
                                 <p className="text-end text-sm">Interoperable with multiple chains</p>
                             </div>
-                            <div className="relative py-6 md:w-[calc(100%-11rem)]">
+                            <div className="relative py-8 md:py-4 md:w-[calc(100%-11rem)]">
                                 <InfiniteSlider
                                     speedOnHover={20}
                                     speed={40}

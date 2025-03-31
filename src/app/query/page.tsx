@@ -182,7 +182,7 @@ export default function QueryPage() {
   }
 
   return (
-    <section className="py-12 md:py-24">
+    <section className="py-24 md:py-30">
       <div className="mx-auto max-w-6xl px-6">
         <div className="text-center space-y-4 mb-12">
           <h1 className="text-balance text-4xl font-medium lg:text-5xl italic">Query Builder</h1>

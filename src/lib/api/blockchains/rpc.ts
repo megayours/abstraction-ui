@@ -14,6 +14,6 @@ export const chains = {
     "https://bsc.drpc.org"
   ],
   solana: [
-    "https://api.mainnet-beta.solana.com"
+    "https://mainnet.helius-rpc.com/?api-key=635001ce-6aca-443b-ac20-2aca86269c2f"
   ]
 }

@@ -44,6 +44,14 @@ const menuItems: MenuItem[] = [
     }
 ]
 
+// User settings menu item - separate from main menu
+const userSettingsItem: MenuItem = {
+    name: 'Settings',
+    href: '/settings',
+    icon: User,
+    requiresAuth: true,
+}
+
 const NavigationItem = ({ item }: { item: typeof menuItems[number] }) => {
     const { account } = useWallet();
 
@@ -94,6 +102,10 @@ export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
     const [walletDialogOpen, setWalletDialogOpen] = React.useState(false);
     const { account, disconnect } = useWallet();
+
+    const closeMenu = React.useCallback(() => {
+        setMenuState(false);
+    }, []);
 
     return (
         <header className="bg-background/50 fixed z-20 w-full border-b backdrop-blur-3xl">
@@ -178,13 +190,24 @@ export const HeroHeader = () => {
                 menuState ? "translate-y-0 opacity-100" : "-translate-y-4 opacity-0 pointer-events-none",
                 "lg:hidden"
             )}>
-                <div className="mb-4">
+                <div className="mb-6">
                     {account ? (
-                        <div className="flex items-center gap-2">
-                            <User className="h-5 w-5" />
-                            <span className="font-mono text-sm">
-                                {account.slice(0, 6)}...{account.slice(-4)}
-                            </span>
+                        <div className="flex flex-col gap-3">
+                            <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
+                                <User className="h-5 w-5" />
+                                <span className="font-mono text-sm">
+                                    {account.slice(0, 6)}...{account.slice(-4)}
+                                </span>
+                            </div>
+                            <Button 
+                                variant="outline" 
+                                onClick={disconnect}
+                                size="sm"
+                                className="text-destructive border-destructive/30 hover:bg-destructive/10 w-full justify-start"
+                            >
+                                <LogOut className="h-4 w-4 mr-2" />
+                                Disconnect
+                            </Button>
                         </div>
                     ) : (
                         <Button
@@ -196,18 +219,32 @@ export const HeroHeader = () => {
                         </Button>
                     )}
                 </div>
-                <ul className="space-y-4">
+                <ul className="space-y-2">
                     {menuItems.map((item, index) => (
-                        <li key={index}>
+                        (item.requiresAuth && !account) ? null : (
+                            <li key={index}>
+                                <Link
+                                    href={item.href}
+                                    target={item.blankTarget ? '_blank' : '_self'}
+                                    onClick={closeMenu}
+                                    className="text-muted-foreground hover:text-accent-foreground flex items-center gap-2 p-3 duration-150 rounded-md hover:bg-accent">
+                                    <item.icon className="size-5" />
+                                    <span className="text-base">{item.name}</span>
+                                </Link>
+                            </li>
+                        )
+                    ))}
+                    {account && (
+                        <li>
                             <Link
-                                href={item.href}
-                                target={item.blankTarget ? '_blank' : '_self'}
-                                className="text-muted-foreground hover:text-accent-foreground flex items-center gap-2 py-2 duration-150">
-                                <item.icon className="size-4" />
-                                <span>{item.name}</span>
+                                href={userSettingsItem.href}
+                                onClick={closeMenu}
+                                className="text-muted-foreground hover:text-accent-foreground flex items-center gap-2 p-3 duration-150 rounded-md hover:bg-accent">
+                                <userSettingsItem.icon className="size-5" />
+                                <span className="text-base">{userSettingsItem.name}</span>
                             </Link>
                         </li>
-                    ))}
+                    )}
                 </ul>
             </div>
             <WalletDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} />

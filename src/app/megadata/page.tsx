@@ -150,7 +150,7 @@ export default function MegaData() {
   }
 
   return (
-    <section className="py-12 md:py-30">
+    <section className="py-24 md:py-30">
       <div className="mx-auto max-w-5xl px-6">
         <div className="text-center space-y-6 mb-12">
           <h1 className="text-balance text-4xl font-medium lg:text-5xl">MegaData</h1>

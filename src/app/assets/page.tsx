@@ -136,7 +136,7 @@ export default function AssetsPage() {
   }
 
   return (
-    <section className="py-12 md:py-24">
+    <section className="py-24 md:py-30">
       <div className="mx-auto max-w-6xl px-6">
         <div className="text-center space-y-4 mb-12">
           <h1 className="text-balance text-4xl font-medium lg:text-5xl italic">Assets</h1>
@@ -216,10 +216,9 @@ export default function AssetsPage() {
                      </div>
                      <Progress value={contract.progress.progress} className="h-1.5" />
                      {contract.progress.isBehind && (
-                       <Alert variant="destructive" className="p-2 text-xs">
-                         <AlertCircle className="h-3 w-3" />
-                         <AlertDescription>
-                           {contract.progress.currentUnit - contract.progress.indexedUnit} blocks behind
+                       <Alert variant="destructive" className="text-xs justify-center text-center">
+                         <AlertDescription className="mt-0.5">
+                           {(contract.progress.currentUnit - contract.progress.indexedUnit).toLocaleString()} blocks behind
                          </AlertDescription>
                        </Alert>
                      )}
