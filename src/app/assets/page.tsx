@@ -19,6 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import Polygon from "@/components/logos/polygon"
 
 interface AssetWithProgress extends AssetInfo {
   progress?: {
@@ -39,6 +40,8 @@ const ChainIcon = ({ chain }: { chain: string }) => {
       return <Solana className="w-10 h-10" />
     case "bnb":
       return <BNB className="w-10 h-10" />
+    case "polygon":
+      return <Polygon className="w-10 h-10" />
     default:
       return null
   }
