@@ -13,6 +13,8 @@ import { useWallet } from '@/contexts/WalletContext';
 import { Plus } from 'lucide-react';
 import { AssetRegistrationModal } from './components/AssetRegistrationModal';
 import { formatAddress } from '@/lib/util';
+import { Loading } from "@/components/ui/loading";
+import { Loader2 } from 'lucide-react';
 
 export default function QueryPage() {
   const { account } = useWallet();
@@ -338,19 +340,30 @@ export default function QueryPage() {
                     <h2 className="text-lg font-medium">Query Results</h2>
                     <Button
                       onClick={handleQueryExecution}
-                      disabled={filters.length === 0}
+                      disabled={filters.length === 0 || isLoading}
                       className="whitespace-nowrap"
                     >
-                      Execute Query
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Executing...
+                        </>
+                      ) : (
+                        "Execute Query"
+                      )}
                     </Button>
                   </div>
 
-                  <ResultsTable
-                    results={results}
-                    isLoading={isLoading}
-                    onQuery={handleQueryExecution}
-                    onDateRangeChange={handleDateRangeChange}
-                  />
+                  {isLoading ? (
+                    <Loading text="Executing your query..." />
+                  ) : (
+                    <ResultsTable
+                      results={results}
+                      isLoading={isLoading}
+                      onQuery={handleQueryExecution}
+                      onDateRangeChange={handleDateRangeChange}
+                    />
+                  )}
                 </div>
               </CardContent>
             </Card>

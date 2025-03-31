@@ -12,6 +12,7 @@ import { getIndexingProgress } from "@/lib/api/blockchains/progress"
 import { Progress } from "@/components/ui/progress"
 import { AlertCircle } from "lucide-react"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Loading } from "@/components/ui/loading"
 import {
   Select,
   SelectContent,
@@ -128,11 +129,13 @@ export default function AssetsPage() {
 
   if (loading && contracts.length === 0) {
     return (
-      <section className="py-12 md:py-24">
+      <section className="py-24 md:py-30">
         <div className="mx-auto max-w-6xl px-6">
-          <div className="text-center">
-            <h1 className="text-balance text-4xl font-medium lg:text-5xl italic">Loading Assets...</h1>
+          <div className="text-center space-y-4 mb-12">
+            <h1 className="text-balance text-4xl font-medium lg:text-5xl italic">Assets</h1>
+            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">View monitored assets across all chains</p>
           </div>
+          <Loading text="Loading your assets..." />
         </div>
       </section>
     )
@@ -176,7 +179,7 @@ export default function AssetsPage() {
           </Select>
         </div>
 
-        {loading && <div className="text-center py-4">Loading filtered assets...</div>}
+        {loading && <Loading text="Loading filtered assets..." className="py-8" />}
         {!loading && contracts.length === 0 && (
            <div className="text-center py-10 text-muted-foreground">No assets found matching your criteria.</div>
         )}
