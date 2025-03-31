@@ -44,16 +44,16 @@ export async function submitAccountLinkingRequest(signatures: SignatureData[]): 
         input: { signatures }
       })
     });
-    
+
     const data = await response.json();
-    
+
     if (!response.ok) {
       return {
         error: data.error || 'Failed to submit account linking request',
         context: 'submit_account_linking_request'
       }
     }
-    
+
     return data;
   } catch (error) {
     return {
@@ -68,8 +68,8 @@ export async function createMegaDataCollection(signature: SignatureData, name: s
     method: 'POST',
     body: JSON.stringify({
       pluginId: 'manage-megadata',
-      input: { 
-        auth:signature,
+      input: {
+        auth: signature,
         operation: 'create_collection',
         name
       }
@@ -77,15 +77,24 @@ export async function createMegaDataCollection(signature: SignatureData, name: s
   });
 
   const data = await response.json();
-    
-    if (!response.ok) {
-      return {
-        error: data.error || 'Failed to create mega data collection',
-        context: 'create_megadata_collection'
-      }
+
+  if (!response.ok) {
+    return {
+      error: data.error || 'Failed to create mega data collection',
+      context: 'create_megadata_collection'
     }
-    
-    return { result: true };
+  }
+
+  return { result: true };
+}
+
+export async function getAvailableSources(): Promise<string[]> {
+  const response = await fetch(`${url}/sources`, {
+    method: 'GET',
+  });
+
+  const data = await response.json();
+  return data;
 }
 
 export async function upsertMegaDataItem(signature: SignatureData, collection: string, tokenId: string, properties: Record<string, any>): Promise<ApiResponse> {
@@ -93,8 +102,8 @@ export async function upsertMegaDataItem(signature: SignatureData, collection: s
     method: 'POST',
     body: JSON.stringify({
       pluginId: 'manage-megadata',
-      input: { 
-        auth:signature,
+      input: {
+        auth: signature,
         operation: 'upsert_item',
         collection,
         tokenId,
@@ -104,15 +113,15 @@ export async function upsertMegaDataItem(signature: SignatureData, collection: s
   });
 
   const data = await response.json();
-    
-    if (!response.ok) {
-      return {
-        error: data.error || 'Failed to submit account linking request',
-        context: 'upsert_megadata_item'
-      }
+
+  if (!response.ok) {
+    return {
+      error: data.error || 'Failed to submit account linking request',
+      context: 'upsert_megadata_item'
     }
-    
-    return { result: true };
+  }
+
+  return { result: true };
 }
 
 export async function deleteMegaDataItem(signature: SignatureData, collection: string, tokenId: string): Promise<ApiResponse> {
@@ -120,8 +129,8 @@ export async function deleteMegaDataItem(signature: SignatureData, collection: s
     method: 'POST',
     body: JSON.stringify({
       pluginId: 'manage-megadata',
-      input: { 
-        auth:signature,
+      input: {
+        auth: signature,
         operation: 'delete_item',
         collection,
         tokenId
@@ -130,13 +139,13 @@ export async function deleteMegaDataItem(signature: SignatureData, collection: s
   });
 
   const data = await response.json();
-  
+
   if (!response.ok) {
     return {
       error: data.error || 'Failed to submit account linking request',
       context: 'delete_megadata_item'
     }
   }
-  
+
   return { result: true };
 }

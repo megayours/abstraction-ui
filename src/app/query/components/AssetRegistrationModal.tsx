@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { registerContract } from "@/lib/api/megaforwarder";
-import { Loader2, X } from "lucide-react";
+import { registerContract, getAvailableSources } from "@/lib/api/megaforwarder";
+import { Loader2, X, Info } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -15,6 +15,12 @@ import { useWallet } from "@/contexts/WalletContext";
 import { SignatureData } from "@/lib/types";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 interface AssetRegistrationModalProps {
   isOpen: boolean;
@@ -23,14 +29,31 @@ interface AssetRegistrationModalProps {
 
 export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationModalProps) {
   const { account, accountType, signMessage } = useWallet();
+  const [availableSources, setAvailableSources] = useState<string[]>([]);
   const [formData, setFormData] = useState({
-    chain: '',
     contract: '',
     blockNumber: '',
     collection: '',
-    type: ''
+    type: '',
+    source: ''
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    const fetchSources = async () => {
+      try {
+        const sources = await getAvailableSources();
+        setAvailableSources(sources);
+      } catch (error) {
+        console.error('Error fetching sources:', error);
+        toast.error('Failed to fetch available sources');
+      }
+    };
+
+    if (isOpen) {
+      fetchSources();
+    }
+  }, [isOpen]);
 
   const createMessage = (account: string, timestamp: number) => {
     return `MegaYours Asset Registration: ${account} at ${timestamp}`;
@@ -57,7 +80,7 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
       };
 
       await registerContract(
-        formData.chain,
+        formData.source,
         formData.contract.replace('0x', ''),
         parseInt(formData.blockNumber),
         formData.collection,
@@ -67,11 +90,11 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
 
       toast.success("Contract registered successfully");
       setFormData({
-        chain: '',
         contract: '',
         blockNumber: '',
         collection: '',
-        type: ''
+        type: '',
+        source: ''
       });
       onClose();
     } catch (error) {
@@ -112,23 +135,38 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="chain">Chain</Label>
+                <Label htmlFor="source">Source</Label>
                 <Select
-                  value={formData.chain}
-                  onValueChange={(value) => handleSelectChange('chain', value)}
+                  value={formData.source}
+                  onValueChange={(value) => handleSelectChange('source', value)}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select chain" />
+                    <SelectValue placeholder="Select source" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ethereum">Ethereum</SelectItem>
-                    <SelectItem value="polygon">Polygon</SelectItem>
+                    {availableSources.map((source) => (
+                      <SelectItem key={source} value={source}>
+                        {source}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="contract">Contract Address</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="contract">Asset Address</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This can be e.g. a Contract Address or a Token Mint address</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Input
                   id="contract"
                   name="contract"
@@ -140,7 +178,19 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="blockNumber">Block Number</Label>
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="blockNumber">Start Unit</Label>
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger>
+                        <Info className="h-4 w-4 text-muted-foreground" />
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>This can be a Block or Slot number when the asset was created</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
                 <Input
                   id="blockNumber"
                   name="blockNumber"
