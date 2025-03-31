@@ -110,8 +110,30 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
+  const getAvailableTypes = () => {
+    if (!formData.source) return [];
+    
+    const source = formData.source.toLowerCase();
+    if (source === 'solana') {
+      return [{ value: 'SPL', label: 'SPL Token' }];
+    } else if (source === 'ethereum' || source === 'polygon') {
+      return [
+        { value: 'ERC20', label: 'ERC20 Token' },
+        { value: 'ERC721', label: 'ERC721 NFT' }
+      ];
+    }
+    return [];
+  };
+
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }));
+    setFormData(prev => {
+      const newData = { ...prev, [name]: value };
+      // Reset type when source changes
+      if (name === 'source') {
+        newData.type = '';
+      }
+      return newData;
+    });
   };
 
   if (!isOpen) return null;
@@ -215,17 +237,21 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="type">Contract Type</Label>
+                <Label htmlFor="type">Asset Type</Label>
                 <Select
                   value={formData.type}
                   onValueChange={(value) => handleSelectChange('type', value)}
+                  disabled={!formData.source}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select type" />
+                    <SelectValue placeholder={formData.source ? "Select type" : "Select source first"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="ERC20">ERC20</SelectItem>
-                    <SelectItem value="ERC721">ERC721</SelectItem>
+                    {getAvailableTypes().map((type) => (
+                      <SelectItem key={type.value} value={type.value}>
+                        {type.label}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
