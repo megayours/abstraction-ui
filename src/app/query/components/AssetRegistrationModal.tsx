@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
-import { registerContract, getAvailableSources } from "@/lib/api/megaforwarder";
+import { registerAsset, getAvailableSources } from "@/lib/api/megaforwarder";
 import { Loader2, X, Info } from "lucide-react";
 import {
   Select,
@@ -79,7 +79,7 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
         signature
       };
 
-      await registerContract(
+      await registerAsset(
         formData.source,
         formData.contract.replace('0x', ''),
         parseInt(formData.blockNumber),

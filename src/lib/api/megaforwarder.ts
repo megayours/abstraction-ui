@@ -3,16 +3,16 @@ import { config } from "../config";
 
 const url = config.megaForwarderUri;
 
-export const registerContract = async (chain: string, contract: string, blockNumber: number, collection: string, type: string, signature: SignatureData) => {
+export const registerAsset = async (source: string, asset: string, unit: number, name: string, type: string, signature: SignatureData) => {
   const response = await fetch(`${url}/task`, {
     method: 'POST',
     body: JSON.stringify({
-      pluginId: 'evm-contract-registration',
+      pluginId: 'asset-registration',
       input: {
-        chain,
-        contract,
-        blockNumber,
-        collection,
+        source,
+        asset,
+        unit,
+        name,
         type,
         auth: signature
       }
