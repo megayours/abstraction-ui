@@ -1,10 +1,7 @@
-import dynamic from 'next/dynamic';
-import { useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
+import MonacoEditor from '@monaco-editor/react';
+import { validateMegadata } from '../../utils/validation';
 import megadataSchema from './megadata.schema.json';
-
-const MonacoEditor = dynamic(() => import('@monaco-editor/react'), {
-  ssr: false
-});
 
 interface JsonEditorProps {
   value: Record<string, any>;
@@ -12,7 +9,13 @@ interface JsonEditorProps {
 }
 
 export default function JsonEditor({ value, onChange }: JsonEditorProps) {
+  const [validationErrors, setValidationErrors] = useState<string[]>([]);
   const editorRef = useRef<any>(null);
+
+  useEffect(() => {
+    const { errors } = validateMegadata(value);
+    setValidationErrors(errors);
+  }, [value]);
 
   const handleEditorDidMount = (editor: any, monaco: any) => {
     editorRef.current = editor;
@@ -41,34 +44,46 @@ export default function JsonEditor({ value, onChange }: JsonEditorProps) {
 
   const handleEditorChange = (value: string | undefined) => {
     if (!value) return;
+
     try {
       const parsed = JSON.parse(value);
-      onChange(parsed);
-    } catch {
-      // Don't update if JSON is invalid
+      const { isValid, errors } = validateMegadata(parsed);
+      setValidationErrors(errors);
+      if (isValid) {
+        onChange(parsed);
+      }
+    } catch (error) {
+      setValidationErrors(['Invalid JSON format']);
     }
   };
 
   return (
-    <div className="w-full h-full">
+    <div className="relative h-full">
       <MonacoEditor
         height="100%"
         defaultLanguage="json"
         value={JSON.stringify(value, null, 2)}
-        theme="vs-light"
+        onChange={handleEditorChange}
+        onMount={handleEditorDidMount}
         options={{
           minimap: { enabled: false },
           fontSize: 14,
           lineNumbers: 'on',
-          roundedSelection: true,
           scrollBeyondLastLine: false,
           automaticLayout: true,
           formatOnPaste: true,
           formatOnType: true
         }}
-        onMount={handleEditorDidMount}
-        onChange={handleEditorChange}
       />
+      {validationErrors.length > 0 && (
+        <div className="absolute bottom-0 left-0 right-0 bg-red-50 border-t border-red-200 p-2">
+          <div className="text-sm text-red-600">
+            {validationErrors.map((error, index) => (
+              <div key={index}>{error}</div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 } 

@@ -63,29 +63,50 @@ export async function submitAccountLinkingRequest(signatures: SignatureData[]): 
   }
 }
 
-export async function createMegaDataCollection(signature: SignatureData, name: string): Promise<ApiResponse> {
-  const response = await fetch(`${url}/task`, {
-    method: 'POST',
-    body: JSON.stringify({
-      pluginId: 'manage-megadata',
-      input: {
-        auth: signature,
-        operation: 'create_collection',
-        name
+type Operation = "create_collection" | "upsert_item" | "delete_item";
+
+type OperationInput = {
+  operation: Operation;
+  name?: string;
+  collection?: string;
+  tokenId?: string;
+  properties?: Record<string, any>;
+};
+
+type ManageMegadataInput = {
+  auth: SignatureData;
+  operations: OperationInput[];
+};
+
+export async function manageMegadata(input: ManageMegadataInput): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${url}/task`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        pluginId: 'manage-megadata',
+        input
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        error: data.error || 'Failed to manage mega data',
+        context: 'manage_megadata'
       }
-    })
-  });
+    }
 
-  const data = await response.json();
-
-  if (!response.ok) {
+    return { result: true };
+  } catch (error) {
     return {
-      error: data.error || 'Failed to create mega data collection',
-      context: 'create_megadata_collection'
+      error: error instanceof Error ? error.message : 'Unknown error',
+      context: 'manage_megadata'
     }
   }
-
-  return { result: true };
 }
 
 export async function getAvailableSources(): Promise<string[]> {
