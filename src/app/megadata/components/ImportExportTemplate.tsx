@@ -10,10 +10,11 @@ import { exportLocalData, importLocalData } from '@/lib/api/localStorage';
 interface ImportExportTemplateProps {
   onImport: (data: any) => void;
   items: MegaDataItem[];
+  published: boolean;
   collectionId: string;
 }
 
-export default function ImportExportTemplate({ onImport, items, collectionId }: ImportExportTemplateProps) {
+export default function ImportExportTemplate({ onImport, items, collectionId, published }: ImportExportTemplateProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -143,13 +144,14 @@ export default function ImportExportTemplate({ onImport, items, collectionId }: 
           <Download className="h-4 w-4" />
           {items.length > 0 ? 'Download Current Data' : 'Download Template'}
         </Button>
-        <div className="relative">
-          <Input
-            type="file"
-            accept=".json"
-            onChange={handleFileImport}
-            disabled={isImporting}
-            className="hidden"
+        {!published && (
+          <div className="relative">
+            <Input
+              type="file"
+              accept=".json"
+              onChange={handleFileImport}
+              disabled={isImporting}
+              className="hidden"
             id="metadata-import"
           />
           <Button
@@ -162,6 +164,7 @@ export default function ImportExportTemplate({ onImport, items, collectionId }: 
             {isImporting ? 'Importing...' : 'Import JSON'}
           </Button>
         </div>
+        )}
       </CardContent>
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">

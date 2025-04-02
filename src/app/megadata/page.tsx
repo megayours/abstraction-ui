@@ -690,6 +690,7 @@ export default function MegaData() {
                 onImport={handleImportData} 
                 items={items} 
                 collectionId={selectedCollection} 
+                published={selectedCollectionData?.published || false}
               />
 
               <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
