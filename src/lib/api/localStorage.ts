@@ -1,6 +1,4 @@
 import { MegaDataCollection, MegaDataItem } from "../types";
-import { calculateHash } from "../filehub";
-import { config } from "../config";
 
 // Extended MegaDataCollection with publishing status
 export interface ExtendedMegaDataCollection extends MegaDataCollection {

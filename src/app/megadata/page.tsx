@@ -1,19 +1,18 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getCollections, getItems } from '@/lib/api/abstraction-chain';
 import { manageMegadata, uploadFile } from '@/lib/api/megaforwarder';
 import { useWallet } from '@/contexts/WalletContext';
-import { SignatureData, MegaDataItem, MegaDataCollection } from '@/lib/types';
+import { SignatureData } from '@/lib/types';
 import { config } from '@/lib/config';
 import { Button } from '@/components/ui/button';
-import { Database, Plus, Code, Globe, Save, Trash2, Upload } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Plus, Globe, Save, Upload } from 'lucide-react';
 import { CreateCollectionWizard } from './components/CreateCollectionWizard';
 import ImportExportTemplate from './components/ImportExportTemplate';
 import TokenList from './components/TokenList';
 import MegadataForm from './components/MegadataForm';
-import { validateMegadata, ValidationResult } from './utils/validation';
+import { validateMegadata } from './utils/validation';
 import { 
   getLocalCollections, 
   getLocalItems, 
@@ -51,10 +50,14 @@ export default function MegaData() {
 
   useEffect(() => {
     if (selectedCollection) {
-      loadItems();
-      // Find the collection data
+      // Find the collection data first
       const collectionData = collections.find(c => c.id === selectedCollection) || null;
       setSelectedCollectionData(collectionData);
+      
+      // Only load items after we have the collection data
+      if (collectionData) {
+        loadItems();
+      }
     } else {
       setSelectedCollectionData(null);
     }
@@ -125,23 +128,41 @@ export default function MegaData() {
     if (!selectedCollection) return;
     
     console.time('loadItems-total');
-    console.time('loadItems-localStorage');
-    // Load items from localStorage
-    const localItems = getLocalItems(selectedCollection);
-    console.timeEnd('loadItems-localStorage');
     
-    // Batch all state updates together
-    const updates = () => {
-      console.time('loadItems-setState');
-      // Set items first without validation
+    // Find the collection data directly from collections array
+    const collectionData = collections.find(c => c.id === selectedCollection);
+    console.log('loadItems collectionData:', collectionData);
+    
+    // If the collection is published, load items from blockchain
+    if (collectionData?.published) {
+      console.time('loadItems-blockchain');
+      try {
+        const remoteItems = await getItems(selectedCollection);
+        // Convert remote items to ExtendedMegaDataItem format
+        const extendedItems: ExtendedMegaDataItem[] = remoteItems.map(item => ({
+          collection: item.collection,
+          tokenId: item.tokenId,
+          properties: item.properties,
+          lastModified: Date.now() // Use current time since we don't have this from blockchain
+        }));
+        setItems(extendedItems);
+      } catch (error) {
+        console.error("Failed to load items from blockchain", error);
+        setItems([]); // Set empty items on error
+      }
+      console.timeEnd('loadItems-blockchain');
+    } else {
+      // For unpublished collections, load from localStorage
+      console.time('loadItems-localStorage');
+      const localItems = getLocalItems(selectedCollection);
       setItems(localItems);
+      console.timeEnd('loadItems-localStorage');
       
-      // Only validate items that have been modified recently
+      // Validate items that have been modified recently
       const newValidationErrors: Record<string, string[]> = {};
       const now = Date.now();
       const RECENT_THRESHOLD = 5 * 60 * 1000; // 5 minutes
       
-      // Validate immediately
       localItems.forEach(item => {
         if (item.lastModified > now - RECENT_THRESHOLD) {
           const { isValid, errors } = validateMegadata(item.properties);
@@ -151,27 +172,11 @@ export default function MegaData() {
         }
       });
       
-      // Only update validation errors if there are any
       if (Object.keys(newValidationErrors).length > 0) {
         setValidationErrors(newValidationErrors);
       }
-      console.timeEnd('loadItems-setState');
-    };
-    
-    // Use requestAnimationFrame to batch updates
-    requestAnimationFrame(updates);
-    
-    // Only load from blockchain if the collection is published
-    if (selectedCollectionData?.published) {
-      console.time('loadItems-blockchain');
-      try {
-        const remoteItems = await getItems(selectedCollection);
-        // Merge local and remote items in future versions
-      } catch (error) {
-        console.error("Failed to load items from blockchain", error);
-      }
-      console.timeEnd('loadItems-blockchain');
     }
+    
     console.timeEnd('loadItems-total');
   };
 
