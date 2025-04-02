@@ -3,6 +3,56 @@ import { config } from "../config";
 
 const url = config.megaForwarderUri;
 
+type FileUploadInput = {
+  auth: SignatureData;
+  data: Buffer;
+  contentType: string;
+};
+
+type FileUploadOutput = {
+  hash: string;
+};
+
+export async function uploadFile(input: FileUploadInput): Promise<ApiResponse & Partial<FileUploadOutput>> {
+  try {
+    const response = await fetch(`${url}/task`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        pluginId: 'file-uploader',
+        input
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        error: data.error || 'Failed to upload file',
+        context: 'upload_file'
+      };
+    }
+
+    // Transform the nested response format to include the hash
+    if (data.result?.value?.hash) {
+      return { 
+        result: true,
+        hash: data.result.value.hash
+      };
+    }
+
+    // Return the raw response if it doesn't match the expected format
+    return data;
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      context: 'upload_file'
+    }
+  }
+}
+
 export const registerAsset = async (source: string, asset: string, unit: number, name: string, type: string, signature: SignatureData) => {
   const response = await fetch(`${url}/task`, {
     method: 'POST',

@@ -1,10 +1,9 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback, Suspense } from 'react';
+import { useState, useEffect, useMemo, useCallback, Suspense, useRef } from 'react';
 import { getCollections, getItems } from '@/lib/api/abstraction-chain';
-import { manageMegadata } from '@/lib/api/megaforwarder';
+import { manageMegadata, uploadFile } from '@/lib/api/megaforwarder';
 import { useWallet } from '@/contexts/WalletContext';
-import dynamic from 'next/dynamic';
 import { SignatureData, MegaDataItem, MegaDataCollection } from '@/lib/types';
 import { config } from '@/lib/config';
 import { Button } from '@/components/ui/button';
@@ -13,6 +12,7 @@ import { Input } from '@/components/ui/input';
 import { CreateCollectionWizard } from './components/CreateCollectionWizard';
 import ImportExportTemplate from './components/ImportExportTemplate';
 import TokenList from './components/TokenList';
+import MegadataForm from './components/MegadataForm';
 import { validateMegadata, ValidationResult } from './utils/validation';
 import { 
   getLocalCollections, 
@@ -25,11 +25,6 @@ import {
   ExtendedMegaDataItem
 } from '@/lib/api/localStorage';
 
-const JsonEditor = dynamic(() => import('./components/JsonEditor'), { 
-  ssr: false,
-  loading: () => <div className="h-[500px] rounded-md border bg-muted animate-pulse" />
-});
-
 export default function MegaData() {
   const { account, signMessage, accountType } = useWallet();
   const [collections, setCollections] = useState<ExtendedMegaDataCollection[]>([]);
@@ -40,12 +35,13 @@ export default function MegaData() {
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
   const [isCreatingItem, setIsCreatingItem] = useState(false);
   const [newTokenId, setNewTokenId] = useState('');
-  const [newCollectionName, setNewCollectionName] = useState('');
   const [editedProperties, setEditedProperties] = useState<Record<string, any>>({});
   const [isPublishing, setIsPublishing] = useState(false);
   const [editingTokenId, setEditingTokenId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [isCreateCollectionWizardOpen, setIsCreateCollectionWizardOpen] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
   useEffect(() => {
     if (account) {
@@ -66,53 +62,26 @@ export default function MegaData() {
 
   useEffect(() => {
     if (selectedItem) {
-      setEditedProperties(selectedItem.properties);
+      // Initialize editedProperties with a deep clone of the selected item's properties
+      setEditedProperties(JSON.parse(JSON.stringify(selectedItem.properties)));
+      setHasUnsavedChanges(false);
     }
   }, [selectedItem]);
 
-  // Autosave when properties are edited
+  // Track changes
   useEffect(() => {
     if (!selectedItem) return;
     
-    console.time('autosave-effect');
-    // Skip if properties haven't actually changed
-    if (JSON.stringify(editedProperties) === JSON.stringify(selectedItem.properties)) {
-      console.timeEnd('autosave-effect');
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      autoSaveItem();
-    }, 500);
+    // Deep compare the properties
+    const currentProps = JSON.stringify(editedProperties);
+    const originalProps = JSON.stringify(selectedItem.properties);
     
-    return () => {
-      clearTimeout(timer);
-      console.timeEnd('autosave-effect');
-    };
+    if (currentProps === originalProps) {
+      setHasUnsavedChanges(false);
+    } else {
+      setHasUnsavedChanges(true);
+    }
   }, [editedProperties, selectedItem]);
-
-  const autoSaveItem = () => {
-    console.time('autoSaveItem');
-    if (!selectedItem || !selectedCollection) return;
-    
-    if (selectedCollectionData?.published) return;
-    
-    const updatedItem: ExtendedMegaDataItem = {
-      ...selectedItem,
-      properties: editedProperties,
-      lastModified: Date.now()
-    };
-    
-    const saved = saveLocalItem(updatedItem);
-    
-    if (saved) {
-      setItems(prev => prev.map(item => 
-        item.tokenId === updatedItem.tokenId ? updatedItem : item
-      ));
-      setSelectedItem(updatedItem);
-    }
-    console.timeEnd('autoSaveItem');
-  };
 
   const loadCollections = async () => {
     if (!account) return;
@@ -532,6 +501,118 @@ export default function MegaData() {
     }
   };
 
+  const handleImageUpload = async (item: ExtendedMegaDataItem, file: File) => {
+    if (!selectedCollection || !account) {
+      alert('Please connect your wallet to upload images');
+      return;
+    }
+    
+    // Validate file type
+    if (!['image/jpeg', 'image/png'].includes(file.type)) {
+      alert('Only JPEG and PNG images are supported');
+      return;
+    }
+
+    // Convert File to Buffer
+    const arrayBuffer = await file.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+
+    // Create signature
+    const timestamp = Date.now();
+    const message = createMessage(account, timestamp);
+    const signature = await signMessage(message);
+
+    try {
+      // Upload to blockchain
+      const uploadResult = await uploadFile({
+        auth: {
+          type: accountType || "evm",
+          timestamp,
+          account,
+          signature,
+        },
+        data: buffer,
+        contentType: file.type,
+      });
+
+      if ('error' in uploadResult) {
+        throw new Error(uploadResult.error);
+      }
+
+      if (!uploadResult.hash) {
+        throw new Error('Failed to get image hash from upload');
+      }
+
+      // Construct the router URI
+      const imageUrl = `${config.megaRouterUri}/megahub/${uploadResult.hash}`;
+
+      // Update the item with the new image URL
+      const updatedItem: ExtendedMegaDataItem = {
+        ...item,
+        properties: {
+          ...item.properties,
+          erc721: {
+            ...item.properties.erc721,
+            image: imageUrl,
+          }
+        }
+      };
+
+      // Save the updated item
+      const saved = saveLocalItem(updatedItem);
+      
+      if (saved) {
+        // Update the items list
+        setItems(prev => prev.map(i => 
+          i.tokenId === item.tokenId ? updatedItem : i
+        ));
+        
+        // Update selected item if it's the one being edited
+        if (selectedItem?.tokenId === item.tokenId) {
+          setSelectedItem(updatedItem);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to upload image:', error);
+      alert(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
+    }
+  };
+
+  const handleSave = async () => {
+    if (!selectedItem || !selectedCollection) return;
+    
+    if (selectedCollectionData?.published) return;
+    
+    setIsSaving(true);
+    try {
+      // Create a clean version of the properties by removing undefined values
+      const cleanProperties = JSON.parse(JSON.stringify(editedProperties));
+      
+      const updatedItem: ExtendedMegaDataItem = {
+        ...selectedItem,
+        properties: cleanProperties,
+        lastModified: Date.now()
+      };
+      
+      const saved = saveLocalItem(updatedItem);
+      
+      if (saved) {
+        // Update items list and selected item atomically
+        setItems(prev => prev.map(item => 
+          item.tokenId === updatedItem.tokenId ? updatedItem : item
+        ));
+        setSelectedItem(updatedItem);
+        setEditedProperties(cleanProperties);
+        setHasUnsavedChanges(false);
+      }
+    } catch (error) {
+      console.error('Save failed:', error);
+      alert('Failed to save changes. Please try again.');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   if (!account) {
     return (
       <section className="py-12 md:py-30">
@@ -610,7 +691,9 @@ export default function MegaData() {
                 <div className="p-6">
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      Your token metadata is accessible through a structured URL. Each part represents a specific component:
+                      {selectedCollectionData?.published 
+                        ? "Your token metadata is accessible through this URL:"
+                        : "Once published, your token metadata will be accessible through a URL like this:"}
                     </p>
                     <div className="flex flex-col gap-3">
                       <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-md">
@@ -623,37 +706,22 @@ export default function MegaData() {
                           megadata
                         </code>
                         <span className="text-xs text-muted-foreground">/</span>
-                        <code className="text-sm font-mono">
-                          {`${selectedCollection.substring(0, 6)}...${selectedCollection.substring(selectedCollection.length - 4)}`}
+                        <code className={`text-sm font-mono ${selectedCollectionData?.published ? '' : 'text-muted-foreground'}`}>
+                          {selectedCollectionData?.published 
+                            ? `${selectedCollection}`
+                            : '<Collection ID>'}
                         </code>
                         {selectedItem && !isCreatingItem && (
                           <>
                             <span className="text-xs text-muted-foreground">/</span>
-                            <code className="text-sm font-mono text-primary">
+                            <code className={`text-sm font-mono ${selectedCollectionData?.published ? 'text-primary' : 'text-muted-foreground'}`}>
                               {selectedItem.tokenId}
                             </code>
                           </>
                         )}
                       </div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="text-xs"
-                            onClick={() => {
-                              navigator.clipboard.writeText(
-                                `${config.megaRouterUri}/megadata/${selectedCollection}/`
-                              );
-                            }}
-                          >
-                            Copy Collection Base URI
-                          </Button>
-                          <span className="text-sm text-muted-foreground">
-                            Use this to get the base URI for the entire collection
-                          </span>
-                        </div>
-                        {selectedItem && !isCreatingItem && (
+                      {selectedCollectionData?.published && (
+                        <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Button
                               variant="outline"
@@ -661,18 +729,37 @@ export default function MegaData() {
                               className="text-xs"
                               onClick={() => {
                                 navigator.clipboard.writeText(
-                                  `${config.megaRouterUri}/megadata/${selectedCollection}/${selectedItem.tokenId}`
+                                  `${config.megaRouterUri}/megadata/${selectedCollection}/`
                                 );
                               }}
                             >
-                              Copy Full URI
+                              Copy Collection Base URI
                             </Button>
                             <span className="text-sm text-muted-foreground">
-                              Use this to get the complete URI including the token ID
+                              Use this to get the base URI for the entire collection
                             </span>
                           </div>
-                        )}
-                      </div>
+                          {selectedItem && !isCreatingItem && (
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="text-xs"
+                                onClick={() => {
+                                  navigator.clipboard.writeText(
+                                    `${config.megaRouterUri}/megadata/${selectedCollection}/${selectedItem.tokenId}`
+                                  );
+                                }}
+                              >
+                                Copy Full URI
+                              </Button>
+                              <span className="text-sm text-muted-foreground">
+                                Use this to get the complete URI including the token ID
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -714,6 +801,7 @@ export default function MegaData() {
                           }
                         }}
                         onNewTokenBlur={() => handleCreateToken(newTokenId)}
+                        onImageUpload={handleImageUpload}
                       />
                     </div>
                   </div>
@@ -721,32 +809,37 @@ export default function MegaData() {
                 <div className="lg:col-span-2 h-full">
                   <div className="rounded-lg border bg-card text-card-foreground shadow-sm h-full flex flex-col">
                     <div className="flex items-center justify-between p-6 pb-3">
-                      <h3 className="text-2xl font-medium tracking-tight">MegaData</h3>
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-2xl font-medium tracking-tight">MegaData</h3>
+                        {hasUnsavedChanges && (
+                          <span className="text-sm text-muted-foreground">
+                            Unsaved changes
+                          </span>
+                        )}
+                      </div>
+                      {!selectedCollectionData?.published && hasUnsavedChanges && (
+                        <Button
+                          onClick={handleSave}
+                          disabled={isSaving}
+                          className="shrink-0"
+                        >
+                          <Save className="mr-2 h-4 w-4" />
+                          {isSaving ? 'Saving...' : 'Save Changes'}
+                        </Button>
+                      )}
                     </div>
                     <div className="flex-1 p-6 pt-0 min-h-0">
                       {selectedItem ? (
-                        <JsonEditor
-                          value={editedProperties}
-                          onChange={(value) => {
-                            console.time('handleEditorChange');
-                            setEditedProperties(value);
-
-                            // Debounce validation
-                            const itemToValidate = isCreatingItem ? newTokenId : selectedItem?.tokenId;
-                            if (itemToValidate) {
-                              const timer = setTimeout(() => {
-                                const result = validateMegadata(value);
-                                setValidationErrors(prev => ({
-                                  ...prev,
-                                  [itemToValidate]: result.isValid ? [] : result.errors
-                                }));
-                              }, 500);
-                              return () => clearTimeout(timer);
-                            }
-                            console.timeEnd('handleEditorChange');
-                          }}
-                          readOnly={selectedCollectionData?.published}
-                        />
+                        <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
+                          <MegadataForm
+                            value={editedProperties}
+                            onChange={(newProperties) => {
+                              setEditedProperties(newProperties);
+                            }}
+                            readOnly={selectedCollectionData?.published}
+                            item={selectedItem}
+                          />
+                        </div>
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
                           Select a token to view and edit its metadata

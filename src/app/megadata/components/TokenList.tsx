@@ -1,5 +1,5 @@
 import { memo, useRef, useMemo } from 'react';
-import { Database, Trash2 } from 'lucide-react';
+import { Database, Trash2, Image as ImageIcon } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ExtendedMegaDataItem } from '@/lib/api/localStorage';
 import { useVirtualizer } from '@tanstack/react-virtual';
@@ -18,9 +18,10 @@ interface TokenListProps {
   isCreatingItem: boolean;
   onNewTokenKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
   onNewTokenBlur: () => void;
+  onImageUpload: (item: ExtendedMegaDataItem, file: File) => Promise<void>;
 }
 
-const ITEM_HEIGHT = 68; // Increased height to fit exactly 10 items
+const ITEM_HEIGHT = 68;
 
 const TokenItem = memo(({ 
   item, 
@@ -32,7 +33,7 @@ const TokenItem = memo(({
   isEditing, 
   newTokenId, 
   onTokenIdChange,
-  onNewTokenIdChange
+  onNewTokenIdChange,
 }: {
   item: ExtendedMegaDataItem;
   isSelected: boolean;
@@ -45,6 +46,8 @@ const TokenItem = memo(({
   onTokenIdChange: () => void;
   onNewTokenIdChange: (value: string) => void;
 }) => {
+  const hasImage = item.properties.erc721?.image && item.properties.erc721.image !== "https://placeholder.com/image.png";
+
   return (
     <div
       onClick={onClick}
@@ -52,7 +55,6 @@ const TokenItem = memo(({
         isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
       } ${hasErrors ? 'border-red-500 border' : ''}`}
     >
-      <Database className={`mr-2 h-4 w-4 ${hasErrors ? 'text-red-500' : ''}`} />
       {isEditing && !isPublished ? (
         <input
           type="text"
@@ -79,6 +81,9 @@ const TokenItem = memo(({
           {item.tokenId}
         </span>
       )}
+      <div className="flex items-center gap-3 min-w-[48px]">
+        <ImageIcon className={`h-4 w-4 ${hasImage ? 'text-green-500' : 'text-muted-foreground'}`} />
+      </div>
       {!isPublished && (
         <Button
           variant="ghost"
@@ -111,7 +116,8 @@ const TokenList = memo(({
   onNewTokenIdChange,
   isCreatingItem,
   onNewTokenKeyDown,
-  onNewTokenBlur
+  onNewTokenBlur,
+  onImageUpload,
 }: TokenListProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
   

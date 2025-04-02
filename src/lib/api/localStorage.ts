@@ -1,4 +1,6 @@
 import { MegaDataCollection, MegaDataItem } from "../types";
+import { calculateHash } from "../filehub";
+import { config } from "../config";
 
 // Extended MegaDataCollection with publishing status
 export interface ExtendedMegaDataCollection extends MegaDataCollection {
@@ -96,8 +98,6 @@ export const createLocalCollection = (
       properties: {
         erc721: {
           name: `${name} #${tokenId}`,
-          description: "Description not set",
-          image: "https://placeholder.com/image.png",
           ...(moduleSettings.erc721 || {})
         }
       },
