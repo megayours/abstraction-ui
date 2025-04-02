@@ -9,7 +9,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
-import { Plus } from 'lucide-react';
 
 interface CreateCollectionModalProps {
   isOpen: boolean;

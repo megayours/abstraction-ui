@@ -33,10 +33,10 @@ export function AssetGroupManager({
             <div className="space-y-1">
               <div className="font-medium">Group ID: {group.id}</div>
               <div className="text-sm text-muted-foreground">
-                Filters: {group.filters.length}
+                Filters: {group.filters?.length || 0}
               </div>
               <div className="text-sm text-muted-foreground">
-                Last Updated: {new Date(group.updated_at).toLocaleString()}
+                Last Updated: {group.updated_at ? new Date(group.updated_at).toLocaleString() : 'N/A'}
               </div>
             </div>
             <Button

@@ -1,4 +1,4 @@
-import { ApiResponse, SignatureData } from "../types";
+import { ApiResponse, SignatureData, ManageQueryInput } from "../types";
 import { config } from "../config";
 
 const url = config.megaForwarderUri;
@@ -63,19 +63,15 @@ export async function submitAccountLinkingRequest(signatures: SignatureData[]): 
   }
 }
 
-type Operation = "create_collection" | "upsert_item" | "delete_item";
-
-type OperationInput = {
-  operation: Operation;
-  name?: string;
-  collection?: string;
-  tokenId?: string;
-  properties?: Record<string, any>;
+type Item = {
+  tokenId: string;
+  properties: Record<string, any>;
 };
 
 type ManageMegadataInput = {
   auth: SignatureData;
-  operations: OperationInput[];
+  collection: string;
+  items: Item[];
 };
 
 export async function manageMegadata(input: ManageMegadataInput): Promise<ApiResponse> {
@@ -100,11 +96,52 @@ export async function manageMegadata(input: ManageMegadataInput): Promise<ApiRes
       }
     }
 
-    return { result: true };
+    // Transform the nested response format to our ApiSuccessResponse
+    // New format example: {"result":{"value":{"id":"0195f565"}}}
+    if (data.result?.value?.id) {
+      return { 
+        result: true,
+        collectionId: data.result.value.id
+      };
+    }
+
+    // Return the raw response if it doesn't match the expected format
+    return data;
   } catch (error) {
     return {
       error: error instanceof Error ? error.message : 'Unknown error',
       context: 'manage_megadata'
+    }
+  }
+}
+
+export async function manageQuery(input: ManageQueryInput): Promise<ApiResponse> {
+  try {
+    const response = await fetch(`${url}/task`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        pluginId: 'manage-query',
+        input
+      })
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      return {
+        error: data.error || 'Failed to manage query',
+        context: 'manage_query'
+      }
+    }
+
+    return { result: true };
+  } catch (error) {
+    return {
+      error: error instanceof Error ? error.message : 'Unknown error',
+      context: 'manage_query'
     }
   }
 }
@@ -116,57 +153,4 @@ export async function getAvailableSources(): Promise<string[]> {
 
   const data = await response.json();
   return data;
-}
-
-export async function upsertMegaDataItem(signature: SignatureData, collection: string, tokenId: string, properties: Record<string, any>): Promise<ApiResponse> {
-  const response = await fetch(`${url}/task`, {
-    method: 'POST',
-    body: JSON.stringify({
-      pluginId: 'manage-megadata',
-      input: {
-        auth: signature,
-        operation: 'upsert_item',
-        collection,
-        tokenId,
-        properties
-      }
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    return {
-      error: data.error || 'Failed to submit account linking request',
-      context: 'upsert_megadata_item'
-    }
-  }
-
-  return { result: true };
-}
-
-export async function deleteMegaDataItem(signature: SignatureData, collection: string, tokenId: string): Promise<ApiResponse> {
-  const response = await fetch(`${url}/task`, {
-    method: 'POST',
-    body: JSON.stringify({
-      pluginId: 'manage-megadata',
-      input: {
-        auth: signature,
-        operation: 'delete_item',
-        collection,
-        tokenId
-      }
-    })
-  });
-
-  const data = await response.json();
-
-  if (!response.ok) {
-    return {
-      error: data.error || 'Failed to submit account linking request',
-      context: 'delete_megadata_item'
-    }
-  }
-
-  return { result: true };
 }

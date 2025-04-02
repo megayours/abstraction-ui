@@ -5,13 +5,15 @@ import { Input } from '@/components/ui/input';
 import { useState } from 'react';
 import { MegaDataItem } from '@/lib/types';
 import { validateMegadata } from '../utils/validation';
+import { exportLocalData, importLocalData } from '@/lib/api/localStorage';
 
 interface ImportExportTemplateProps {
   onImport: (data: any) => void;
-  items: any[];
+  items: MegaDataItem[];
+  collectionId: string;
 }
 
-export default function ImportExportTemplate({ onImport, items }: ImportExportTemplateProps) {
+export default function ImportExportTemplate({ onImport, items, collectionId }: ImportExportTemplateProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -53,15 +55,23 @@ export default function ImportExportTemplate({ onImport, items }: ImportExportTe
   };
 
   const downloadCurrentData = () => {
-    const data = items.map(item => ({
-      token_id: item.token_id,
-      metadata: item.metadata
+    // Export only the current collection data in a simplified format
+    const exportData = exportLocalData();
+    const items = exportData.items[collectionId] || [];
+    
+    // Create a simplified array with just tokenId and megadata
+    const simplifiedItems = items.map(item => ({
+      tokenId: item.tokenId,
+      megadata: {
+        erc721: item.properties.erc721
+      }
     }));
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    
+    const blob = new Blob([JSON.stringify(simplifiedItems, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'megadata.json';
+    a.download = `megadata-collection-${collectionId}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -72,21 +82,43 @@ export default function ImportExportTemplate({ onImport, items }: ImportExportTe
     const file = event.target.files?.[0];
     if (!file) return;
 
+    setIsImporting(true);
     setError(null);
+    
     const reader = new FileReader();
     reader.onload = (e) => {
       try {
         const data = JSON.parse(e.target?.result as string);
-        const { isValid, errors } = validateMegadata(data);
         
-        if (!isValid) {
-          setError(`Validation failed: ${errors.join(', ')}`);
-          return;
+        // Check the format of the imported data
+        if (data.collections && data.items) {
+          // It's our old export format with collections and items
+          const success = importLocalData(data);
+          if (success) {
+            onImport(data);
+          } else {
+            setError('Failed to import data');
+          }
+        } else if (Array.isArray(data)) {
+          // It's the new simplified array format or an array of items
+          // validateMegadata has been updated to handle both megadata and properties fields
+          const { isValid, errors } = validateMegadata(data);
+          
+          if (!isValid) {
+            setError(`Validation failed: ${errors.join(', ')}`);
+            setIsImporting(false);
+            return;
+          }
+          
+          onImport(data);
+        } else {
+          // Unsupported format
+          setError('Invalid data format. Expected an array of items or a collections/items object.');
         }
-        
-        onImport(data);
       } catch (error) {
         setError('Invalid JSON file');
+      } finally {
+        setIsImporting(false);
       }
     };
     reader.readAsText(file);

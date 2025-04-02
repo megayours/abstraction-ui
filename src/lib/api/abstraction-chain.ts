@@ -1,5 +1,5 @@
 import { createClient, DictPair, IClient } from "postchain-client"
-import { ApiResponse, AssetFilter, AssetInfo, AccountLink, MegaDataItem, MegaDataCollection } from "../types";
+import { ApiResponse, AssetFilter, AssetInfo, AccountLink, MegaDataItem, MegaDataCollection, AssetGroup } from "../types";
 import { fromHexBuffer } from "../util";
 import { config } from "../config";
 
@@ -82,13 +82,18 @@ export const getContracts = async ({ source, type }: { source?: string, type?: s
   return client.query<AssetInfo[]>('assets.get_assets_info', { source: source || null, type: type || null })
 }
 
-export const fetchAssetGroups = async () => {
+export const fetchAssetGroups = async (owner: string): Promise<AssetGroup[]> => {
   const client = await ensureClient();
-  return client.query<string[]>('asset_groups.get_asset_groups', {});
+  return client.query<{ id: Buffer, name: string, owner: string }[]>('asset_groups.get_asset_groups', { owner })
+    .then((groups) => groups.map((group) => ({
+      ...group,
+      id: fromHexBuffer(group.id)
+    })));
 }
 
-export const fetchAssetGroupFilters = async (groupId: string) => {
+export const fetchAssetGroupFilters = async (groupId: Buffer) => {
   const client = await ensureClient();
+  console.log('Fetching asset group filters for groupId:', groupId);
   return client.query<AssetFilter[]>('asset_groups.get_asset_group_filters', {
     asset_group_id: groupId
   });;

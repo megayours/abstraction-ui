@@ -11,9 +11,11 @@ export type AssetFilter =  {
 
 export type AssetGroup = {
   id: string;
-  filters: AssetFilter[];
-  created_at: number;
-  updated_at: number;
+  name: string;
+  owner: string;
+  filters?: AssetFilter[];
+  created_at?: number;
+  updated_at?: number;
 }
 
 export type AssetInfo = {
@@ -39,6 +41,7 @@ export interface AccountLink {
 // API Response Types
 export type ApiSuccessResponse = {
   result: true;
+  collectionId?: string;  // Optional collection ID returned from operations
 }
 
 export type ApiErrorResponse = {
@@ -52,4 +55,10 @@ export type MegaDataItem = {
   collection: string;
   tokenId: string;
   properties: Record<string, any>;
+}
+export type ManageQueryInput = {
+  auth: SignatureData;
+  id?: string;
+  name?: string;
+  filters?: AssetFilter[];
 }

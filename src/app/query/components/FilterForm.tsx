@@ -17,8 +17,8 @@ export interface FilterFormProps {
 export function FilterForm({ onSubmit, onEdit, initialValues, currentFilters }: FilterFormProps) {
   const [sources, setSources] = useState<string[]>([]);
   const [assets, setAssets] = useState<string[]>([]);
-  const [selectedSource, setSelectedSource] = useState<string>('');
-  const [selectedAsset, setSelectedAsset] = useState<string>('');
+  const [selectedSource, setSelectedSource] = useState<string>(initialValues?.source || '');
+  const [selectedAsset, setSelectedAsset] = useState<string>(initialValues?.asset || '');
   const [requires, setRequires] = useState(initialValues?.requires || 0);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -35,25 +35,38 @@ export function FilterForm({ onSubmit, onEdit, initialValues, currentFilters }: 
     loadSources();
   }, []);
 
-  // Load assets when source changes
+  // Load assets when source changes or when initialValues is provided
   useEffect(() => {
     const loadAssets = async () => {
       if (!selectedSource) {
         setAssets([]);
-        setSelectedAsset('');
+        if (!initialValues?.asset) {
+          setSelectedAsset('');
+        }
         return;
       }
 
       try {
         const assets = await fetchAssets(selectedSource);
         setAssets(assets);
-        setSelectedAsset('');
+        if (!initialValues?.asset) {
+          setSelectedAsset('');
+        }
       } catch (error) {
         console.error('Failed to load assets:', error);
       }
     };
     loadAssets();
-  }, [selectedSource]);
+  }, [selectedSource, initialValues]);
+
+  // Update form when initialValues changes
+  useEffect(() => {
+    if (initialValues) {
+      setSelectedSource(initialValues.source);
+      setSelectedAsset(initialValues.asset);
+      setRequires(initialValues.requires);
+    }
+  }, [initialValues]);
 
   // Check if an asset is already used in a filter
   const isAssetUsed = (asset: string) => {

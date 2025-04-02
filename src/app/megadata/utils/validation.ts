@@ -29,7 +29,13 @@ const megadataSchema: JSONSchema7 = {
   }
 };
 
-export function validateMegadata(data: any): { isValid: boolean; errors: string[] } {
+export interface ValidationResult {
+  isValid: boolean;
+  errors: string[];
+  lastModified?: number;
+}
+
+export function validateMegadata(data: any): ValidationResult {
   const errors: string[] = [];
 
   // Check if data is an array (batch import) or a single object (editor)
@@ -40,12 +46,15 @@ export function validateMegadata(data: any): { isValid: boolean; errors: string[
         errors.push(`Item ${index}: Missing required property: tokenId`);
       }
 
-      if (!item.megadata || !item.megadata.erc721) {
-        errors.push(`Item ${index}: Missing required property: megadata.erc721`);
+      // Handle both properties and megadata fields for backward compatibility
+      const metadata = item.properties?.erc721 || item.megadata?.erc721;
+      
+      if (!metadata) {
+        errors.push(`Item ${index}: Missing required metadata structure. Need either properties.erc721 or megadata.erc721`);
         return;
       }
 
-      validateMetadata(item.megadata.erc721, errors, index);
+      validateMetadata({ erc721: metadata }, errors, index);
     });
   } else if (typeof data === 'object' && data !== null) {
     // Validate single metadata object (editor case)
