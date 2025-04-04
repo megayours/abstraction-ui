@@ -189,23 +189,23 @@ export async function unlinkAccounts(accountA: string, accountB: string) {
 
 export async function getCollections(owner: string): Promise<MegaDataCollection[]> {
   const client = await ensureClient();
-  const collections = await client.query<{ id: Buffer, name: string }[]>('megadata.get_collections', {
+  const collections = await client.query<{ id: string, name: string }[]>('megadata.get_collections', {
     owner
   });
   return collections.map(collection => ({
-    id: fromHexBuffer(collection.id),
+    id: collection.id,
     name: collection.name
   }));
 }
 
 export async function getItems(collection: string): Promise<MegaDataItem[]> {
   const client = await ensureClient();
-  const items = await client.query<{ collection: Buffer, token_id: string, properties: DictPair }[]>('megadata.get_items', {
+  const items = await client.query<{ collection: string, token_id: string, properties: DictPair }[]>('megadata.get_items', {
     collection
   });
 
   return items.map(item => ({
-    collection: fromHexBuffer(item.collection),
+    collection: item.collection,
     tokenId: item.token_id,
     properties: item.properties
   }));

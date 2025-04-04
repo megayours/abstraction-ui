@@ -1,4 +1,5 @@
 import { MegaDataCollection, MegaDataItem } from "../types";
+import { z } from 'zod';
 
 // Extended MegaDataCollection with publishing status
 export interface ExtendedMegaDataCollection extends MegaDataCollection {

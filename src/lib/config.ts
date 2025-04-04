@@ -5,4 +5,5 @@ export const config = {
   },
   megaRouterUri: process.env.NEXT_PUBLIC_MEGAROUTER_URI,
   megaForwarderUri: process.env.NEXT_PUBLIC_MEGAFORWARDER_URI,
+  megadataApiUri: process.env.NEXT_PUBLIC_MEGADATA_API_URI,
 }

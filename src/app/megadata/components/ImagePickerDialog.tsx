@@ -10,35 +10,27 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Upload, Image as ImageIcon } from 'lucide-react';
-import { saveLocalItem } from '@/lib/api/localStorage';
-import { ExtendedMegaDataItem } from '@/lib/api/localStorage';
-import { uploadFile } from '@/lib/api/megaforwarder';
 import { config } from '@/lib/config';
 import { useWallet } from '@/contexts/WalletContext';
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+const MEGADATA_API_BASE = config.megadataApiUri || 'http://localhost:3000';
 
 interface ImagePickerDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onImageUploaded: (imageUrl: string) => void;
-  item: ExtendedMegaDataItem;
 }
 
 export function ImagePickerDialog({
   isOpen,
   onClose,
   onImageUploaded,
-  item
 }: ImagePickerDialogProps) {
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
-  const { account, signMessage, accountType } = useWallet();
-
-  const createMessage = (account: string, timestamp: number) => {
-    return `MegaYours File Upload: ${account} at ${timestamp}`;
-  };
+  const { account } = useWallet();
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -66,6 +58,17 @@ export function ImagePickerDialog({
     }
   };
 
+  // Function to convert ArrayBuffer to Base64
+  const bufferToBase64 = (buffer: ArrayBuffer): string => {
+    let binary = '';
+    const bytes = new Uint8Array(buffer);
+    const len = bytes.byteLength;
+    for (let i = 0; i < len; i++) {
+      binary += String.fromCharCode(bytes[i]);
+    }
+    return btoa(binary);
+  };
+
   const handleFileUpload = async (file: File) => {
     if (!['image/jpeg', 'image/png'].includes(file.type)) {
       setUploadError('Only JPEG and PNG images are supported');
@@ -86,29 +89,27 @@ export function ImagePickerDialog({
     setUploadError(null);
 
     try {
-      // Convert File to Buffer
+      // Convert File to Base64
       const arrayBuffer = await file.arrayBuffer();
-      const buffer = Buffer.from(arrayBuffer);
+      const base64File = bufferToBase64(arrayBuffer);
 
-      // Create signature
-      const timestamp = Date.now();
-      const message = createMessage(account, timestamp);
-      const signature = await signMessage(message);
-
-      // Upload to blockchain
-      const uploadResult = await uploadFile({
-        auth: {
-          type: accountType || "evm",
-          timestamp,
-          account,
-          signature,
-        },
-        data: buffer,
-        contentType: file.type,
+      // Upload using Megadata API
+      const response = await fetch(`${MEGADATA_API_BASE}/megahub/upload-file`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+              file: base64File,
+              contentType: file.type,
+              account: account, // Send account ID
+          }),
       });
 
-      if ('error' in uploadResult) {
-        throw new Error(uploadResult.error);
+      const uploadResult = await response.json();
+
+      if (!response.ok) {
+         throw new Error(uploadResult.error || `HTTP error! status: ${response.status}`);
       }
 
       if (!uploadResult.hash) {
@@ -117,21 +118,6 @@ export function ImagePickerDialog({
 
       // Construct the router URI
       const imageUrl = `${config.megaRouterUri}/megahub/${uploadResult.hash}`;
-
-      // Update the item with the new image URL
-      const updatedItem: ExtendedMegaDataItem = {
-        ...item,
-        properties: {
-          ...item.properties,
-          erc721: {
-            ...item.properties.erc721,
-            image: imageUrl,
-          }
-        }
-      };
-
-      // Save the updated item
-      saveLocalItem(updatedItem);
 
       onImageUploaded(imageUrl);
       onClose();
@@ -149,7 +135,8 @@ export function ImagePickerDialog({
         <DialogHeader>
           <DialogTitle>Upload Image</DialogTitle>
           <DialogDescription>
-            Upload a JPEG or PNG image to use for this token. Maximum file size is 10MB.
+            Upload a JPEG or PNG image. Maximum file size is 10MB.
+            The image will be associated with your connected account ({account ? `${account.slice(0,6)}...${account.slice(-4)}` : 'No account connected'}).
           </DialogDescription>
         </DialogHeader>
         <div
@@ -172,17 +159,18 @@ export function ImagePickerDialog({
                 onChange={handleFileSelect}
                 className="hidden"
                 id="image-upload"
-                disabled={isUploading}
+                disabled={isUploading || !account}
               />
               <Button
                 variant="outline"
                 onClick={() => document.getElementById('image-upload')?.click()}
-                disabled={isUploading}
+                disabled={isUploading || !account}
               >
                 <Upload className="h-4 w-4 mr-2" />
                 {isUploading ? 'Uploading...' : 'Select Image'}
               </Button>
             </div>
+            {!account && <p className="text-xs text-destructive mt-2">Connect wallet to enable upload</p>}
           </div>
         </div>
         {uploadError && (
@@ -191,7 +179,7 @@ export function ImagePickerDialog({
           </div>
         )}
         <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isUploading}>
             Cancel
           </Button>
         </DialogFooter>

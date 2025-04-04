@@ -1,27 +1,25 @@
-import { memo, useRef, useMemo } from 'react';
-import { Database, Trash2, Image as ImageIcon } from 'lucide-react';
+import { memo, useRef, useState, useEffect } from 'react';
+import { Trash2, Image as ImageIcon, CheckCircle, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { ExtendedMegaDataItem } from '@/lib/api/localStorage';
+import { Input } from '@/components/ui/input';
+import { Token } from '@/lib/api/megadata';
 import { useVirtualizer } from '@tanstack/react-virtual';
+import { Checkbox } from '@/components/ui/checkbox';
 
 interface TokenListProps {
-  items: ExtendedMegaDataItem[];
-  selectedItem: ExtendedMegaDataItem | null;
+  items: Token[];
+  selectedItem: Token | null;
   validationErrors: Record<string, string[]>;
-  isPublished: boolean;
-  onTokenClick: (item: ExtendedMegaDataItem) => void;
-  onDeleteToken: (tokenId: string) => void;
-  editingTokenId: string | null;
+  onTokenClick: (token: Token) => void;
   newTokenId: string;
-  onTokenIdChange: (oldTokenId: string, newTokenId: string) => void;
-  onNewTokenIdChange: (value: string) => void;
-  isCreatingItem: boolean;
-  onNewTokenKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onNewTokenIdChange: (tokenId: string) => void;
   onNewTokenBlur: () => void;
-  onImageUpload: (item: ExtendedMegaDataItem, file: File) => Promise<void>;
+  onImageUpload: (token: Token, file: File) => void;
+  tokensToPublish: Set<string>;
+  onTogglePublishSelection: (tokenId: string) => void;
 }
 
-const ITEM_HEIGHT = 68;
+const ITEM_HEIGHT = 60;
 
 const TokenItem = memo(({ 
   item, 
@@ -35,7 +33,7 @@ const TokenItem = memo(({
   onTokenIdChange,
   onNewTokenIdChange,
 }: {
-  item: ExtendedMegaDataItem;
+  item: Token;
   isSelected: boolean;
   hasErrors: boolean;
   isPublished: boolean;
@@ -46,7 +44,7 @@ const TokenItem = memo(({
   onTokenIdChange: () => void;
   onNewTokenIdChange: (value: string) => void;
 }) => {
-  const hasImage = item.properties.erc721?.image && item.properties.erc721.image !== "https://placeholder.com/image.png";
+  const hasImage = item.data.image && item.data.image !== "https://placeholder.com/image.png";
 
   return (
     <div
@@ -55,7 +53,7 @@ const TokenItem = memo(({
         isSelected ? 'bg-accent text-accent-foreground' : 'hover:bg-muted'
       } ${hasErrors ? 'border-red-500 border' : ''}`}
     >
-      {isEditing && !isPublished ? (
+      {isEditing && !isPublished && !item.is_published ? (
         <input
           type="text"
           value={newTokenId}
@@ -72,19 +70,19 @@ const TokenItem = memo(({
       ) : (
         <span
           onDoubleClick={() => {
-            if (!isPublished) {
-              onNewTokenIdChange(item.tokenId);
+            if (!item.is_published) {
+              onNewTokenIdChange(item.id);
             }
           }}
           className="flex-1 text-base"
         >
-          {item.tokenId}
+          {item.id}
         </span>
       )}
       <div className="flex items-center gap-3 min-w-[48px]">
         <ImageIcon className={`h-4 w-4 ${hasImage ? 'text-green-500' : 'text-muted-foreground'}`} />
       </div>
-      {!isPublished && (
+      {!item.is_published && (
         <Button
           variant="ghost"
           size="icon"
@@ -107,88 +105,158 @@ const TokenList = memo(({
   items,
   selectedItem,
   validationErrors,
-  isPublished,
   onTokenClick,
-  onDeleteToken,
-  editingTokenId,
   newTokenId,
-  onTokenIdChange,
   onNewTokenIdChange,
-  isCreatingItem,
-  onNewTokenKeyDown,
   onNewTokenBlur,
   onImageUpload,
+  tokensToPublish,
+  onTogglePublishSelection,
 }: TokenListProps) => {
   const parentRef = useRef<HTMLDivElement>(null);
+  const [internalNewTokenId, setInternalNewTokenId] = useState('');
+  const imageInputRef = useRef<HTMLInputElement>(null);
+  const [uploadingTokenId, setUploadingTokenId] = useState<string | null>(null);
   
-  const virtualizer = useVirtualizer({
-    count: items.length,
+  const rowVirtualizer = useVirtualizer({
+    count: items.length + 1,
     getScrollElement: () => parentRef.current,
     estimateSize: () => ITEM_HEIGHT,
-    overscan: 5
+    overscan: 5,
   });
+
+  useEffect(() => {
+    setInternalNewTokenId(newTokenId);
+  }, [newTokenId]);
+
+  const handleInternalNewTokenIdChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInternalNewTokenId(e.target.value);
+    onNewTokenIdChange(e.target.value);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter' && internalNewTokenId.trim()) {
+      onNewTokenBlur();
+    }
+  };
+
+  const handleImageUpload = async (token: Token, file: File) => {
+    await onImageUpload(token, file);
+  };
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0] && uploadingTokenId) {
+      const token = items.find(t => t.id === uploadingTokenId);
+      if (token) {
+        onImageUpload(token, e.target.files[0]);
+      }
+    }
+    setUploadingTokenId(null);
+    if (imageInputRef.current) {
+        imageInputRef.current.value = '';
+    }
+  };
 
   return (
     <div className="flex flex-col h-full">
-      {/* Scrollable container with fixed height */}
-      <div className="flex-1 px-6">
-        <div 
-          ref={parentRef}
-          className="h-[calc(100vh-300px)] overflow-y-auto"
+      <div ref={parentRef} className="flex-grow overflow-y-auto rounded-md border">
+        <div
+          style={{
+            height: `${rowVirtualizer.getTotalSize()}px`,
+            width: '100%',
+            position: 'relative',
+          }}
         >
-          <div
-            style={{
-              height: `${virtualizer.getTotalSize()}px`,
-              width: '100%',
-              position: 'relative'
-            }}
-          >
-            {virtualizer.getVirtualItems().map((virtualRow) => {
-              const item = items[virtualRow.index];
+          {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+            const isLastItem = virtualItem.index >= items.length;
+            
+            if (isLastItem) {
               return (
                 <div
-                  key={virtualRow.key}
-                  data-index={virtualRow.index}
-                  className="absolute top-0 left-0 w-full"
+                  key="__new_token_input__"
                   style={{
-                    height: `${ITEM_HEIGHT}px`,
-                    transform: `translateY(${virtualRow.start}px)`
+                    position: 'absolute',
+                    top: 0,
+                    left: 0,
+                    width: '100%',
+                    height: `${virtualItem.size}px`,
+                    transform: `translateY(${virtualItem.start}px)`,
+                    padding: '4px', 
                   }}
                 >
-                  <TokenItem
-                    item={item}
-                    isSelected={selectedItem?.tokenId === item.tokenId}
-                    hasErrors={validationErrors[item.tokenId]?.length > 0}
-                    isPublished={isPublished}
-                    onClick={() => onTokenClick(item)}
-                    onDelete={() => onDeleteToken(item.tokenId)}
-                    isEditing={editingTokenId === item.tokenId}
-                    newTokenId={newTokenId}
-                    onTokenIdChange={() => onTokenIdChange(item.tokenId, newTokenId)}
-                    onNewTokenIdChange={onNewTokenIdChange}
-                  />
+                  <div className="h-full px-2 flex items-center"> 
+                    <Input
+                      placeholder="Enter ID of new token & press Enter"
+                      value={internalNewTokenId}
+                      onChange={handleInternalNewTokenIdChange}
+                      onKeyDown={handleKeyDown}
+                      onBlur={onNewTokenBlur}
+                      className="h-10 text-sm"
+                    />
+                  </div>
                 </div>
               );
-            })}
-          </div>
+            }
+            
+            const token = items[virtualItem.index];
+            const isSelected = token?.id === selectedItem?.id;
+            const hasError = token ? validationErrors[token.id]?.length > 0 : false;
+            const isPublished = token?.is_published;
+
+            return (
+              <div
+                key={token.id} 
+                style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: `${virtualItem.size}px`,
+                  transform: `translateY(${virtualItem.start}px)`,
+                  padding: '4px', 
+                }}
+              >
+                <div 
+                  className={`h-full rounded-md flex items-center px-3 cursor-pointer transition-colors border border-transparent ${ 
+                      isSelected ? 'bg-primary/10 border-primary/30' : 'hover:bg-muted/50' 
+                  } ${isPublished ? 'opacity-60' : ''}`}
+                  onClick={() => onTokenClick(token)}
+                >
+                  <div className="flex-shrink-0 mr-3 w-4 h-4">
+                      {!isPublished ? (
+                         <Checkbox
+                              id={`publish-${token.id}`}
+                              checked={tokensToPublish.has(token.id)}
+                              onCheckedChange={() => onTogglePublishSelection(token.id)}
+                              onClick={(e) => e.stopPropagation()} 
+                          />
+                      ) : (
+                          <CheckCircle className="w-full h-full text-green-600" /> 
+                      )}
+                  </div>
+                    
+                  <span className="flex-grow font-medium truncate text-sm" title={token.data.name || token.id}>
+                      {token.id}
+                  </span>
+                    
+                  <div className="flex-shrink-0 ml-2 w-4 h-4">
+                      {hasError && !isPublished && 
+                         <AlertCircle className="w-full h-full text-destructive" />
+                      }
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
-      {/* Create item input at the bottom */}
-      {isCreatingItem && (
-        <div className="flex items-center p-3 rounded-md bg-muted/50 mx-6 mb-6 mt-2">
-          <Database className="mr-2 h-4 w-4" />
-          <input
-            type="text"
-            value={newTokenId}
-            onChange={(e) => onNewTokenIdChange(e.target.value)}
-            placeholder="Enter Token ID (e.g., 1, 2, 3, or #1, #2, #3)"
-            className="flex h-8 w-full rounded-md border border-input bg-background px-2 py-1 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            autoFocus
-            onKeyDown={onNewTokenKeyDown}
-            onBlur={onNewTokenBlur}
-          />
-        </div>
-      )}
+      <input
+        type="file"
+        ref={imageInputRef}
+        onChange={handleImageFileChange}
+        accept="image/*"
+        style={{ display: 'none' }}
+      />
     </div>
   );
 });

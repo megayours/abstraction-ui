@@ -1,38 +1,43 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { getCollections, getItems } from '@/lib/api/abstraction-chain';
-import { manageMegadata, uploadFile } from '@/lib/api/megaforwarder';
 import { useWallet } from '@/contexts/WalletContext';
-import { SignatureData } from '@/lib/types';
-import { config } from '@/lib/config';
 import { Button } from '@/components/ui/button';
 import { Plus, Globe, Save, Upload } from 'lucide-react';
-import { CreateCollectionWizard } from './components/CreateCollectionWizard';
+import CreateCollectionWizard from './components/CreateCollectionWizard';
 import ImportExportTemplate from './components/ImportExportTemplate';
 import TokenList from './components/TokenList';
 import MegadataForm from './components/MegadataForm';
 import { validateMegadata } from './utils/validation';
-import { 
-  getLocalCollections, 
-  getLocalItems, 
-  createLocalCollection, 
-  saveLocalItem,
-  deleteLocalItem,
-  publishLocalCollection,
-  ExtendedMegaDataCollection,
-  ExtendedMegaDataItem
-} from '@/lib/api/localStorage';
+import * as megadataApi from '@/lib/api/megadata';
+import type { Collection, Token, Module } from '@/lib/api/megadata';
+import { config } from '@/lib/config';
+import type { MegaDataItem } from '@/lib/types';
+
+// Helper function to generate default values based on schema type
+const generateDefaultValue = (propertySchema: any): any => {
+  if (propertySchema.default !== undefined) {
+    return propertySchema.default;
+  }
+  switch (propertySchema.type) {
+    case 'string': return '';
+    case 'number': return 0;
+    case 'integer': return 0;
+    case 'boolean': return false;
+    case 'array': return [];
+    case 'object': return {};
+    default: return null; // Or handle other types/throw error
+  }
+};
 
 export default function MegaData() {
   const { account, signMessage, accountType } = useWallet();
-  const [collections, setCollections] = useState<ExtendedMegaDataCollection[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<string>('');
-  const [selectedCollectionData, setSelectedCollectionData] = useState<ExtendedMegaDataCollection | null>(null);
-  const [items, setItems] = useState<ExtendedMegaDataItem[]>([]);
-  const [selectedItem, setSelectedItem] = useState<ExtendedMegaDataItem | null>(null);
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [selectedCollection, setSelectedCollection] = useState<number | null>(null);
+  const [selectedCollectionData, setSelectedCollectionData] = useState<Collection | null>(null);
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  const [isCreatingItem, setIsCreatingItem] = useState(false);
   const [newTokenId, setNewTokenId] = useState('');
   const [editedProperties, setEditedProperties] = useState<Record<string, any>>({});
   const [isPublishing, setIsPublishing] = useState(false);
@@ -41,6 +46,134 @@ export default function MegaData() {
   const [isCreateCollectionWizardOpen, setIsCreateCollectionWizardOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+  const [collectionModules, setCollectionModules] = useState<Module[]>([]);
+  const [selectedModules, setSelectedModules] = useState<string[]>([]);
+  const [tokensToPublish, setTokensToPublish] = useState<Set<string>>(new Set());
+
+  // --- Loading Functions --- 
+
+  // Refactor loadCollectionData to use passed ID primarily
+  const loadCollectionData = async (id: number | null = selectedCollection) => {
+    if (!id) {
+        setSelectedCollectionData(null);
+        return;
+    }
+    try {
+      const collection = await megadataApi.getCollection(id);
+      // Only set if the loaded data is for the currently selected collection
+      if (id === selectedCollection) {
+        setSelectedCollectionData(collection);
+      }
+    } catch (error) {
+      console.error(`Failed to load collection data for ${id}`, error);
+      if (id === selectedCollection) setSelectedCollectionData(null); // Clear if error for current selection
+    }
+  };
+
+  // Refactor loadTokens - remove internal check, rely on caller timing
+  const loadTokens = async (id: number | null = selectedCollection) => {
+    if (!id) {
+        setTokens([]);
+        return;
+    }
+    console.log(`loadTokens fetching for collection ID: ${id}`); // Debugging
+    try {
+      const fetchedTokens = await megadataApi.getTokens(id);
+      // Only set if the loaded data is for the currently selected collection
+       if (id === selectedCollection) {
+            console.log(`Setting tokens for collection: ${id}`); // Debugging
+            setTokens(fetchedTokens);
+       } else {
+            console.log(`Skipping setTokens for ${id} because current selection is ${selectedCollection}`); // Debugging
+       }
+    } catch (error) {
+      console.error(`Failed to load tokens for collection ${id}:`, error);
+       if (id === selectedCollection) setTokens([]); // Clear if error for current selection
+    }
+  };
+
+  // Refactor loadModule to use passed ID primarily
+  const loadModule = async (id: number | null = selectedCollection) => {
+    if (!id) {
+        setCollectionModules([]);
+        setSelectedModule(null);
+        return;
+    }
+    // Resetting based on the ID we intend to load for
+    setCollectionModules([]);
+    setSelectedModule(null);
+    
+    try {
+      const collection = await megadataApi.getCollection(id);
+      // Check if the collection we based this on is still the selected one
+      if (id === selectedCollection && collection.modules && collection.modules.length > 0) {
+          const modules = await Promise.all(
+            collection.modules.map(modId => megadataApi.getModule(modId))
+          );
+          // Final check before setting state
+          if (id === selectedCollection) {
+                setCollectionModules(modules);
+                if (modules.length > 0) {
+                    setSelectedModule(modules[0]);
+                }
+          }
+      }
+    } catch (error) {
+      console.error(`Failed to load module(s) for ${id}:`, error);
+      if (id === selectedCollection) { // Clear if error for current selection
+          setCollectionModules([]);
+          setSelectedModule(null);
+      }
+    }
+  };
+
+  // New central loading function (Moved earlier)
+  const selectAndLoadCollection = useCallback(async (id: number | null) => {
+    // Set the selected ID first - NO! Set it AFTER clearing/fetching? No, the load functions check it.
+    // Let's keep setting it first, but ensure loaders check correctly.
+    // setSelectedCollection(id); // Let the caller handle setting the state externally if needed
+    
+    // If null, clear everything and return
+    if (id === null) {
+      setSelectedCollectionData(null);
+      setTokens([]);
+      setSelectedToken(null);
+      setCollectionModules([]);
+      setSelectedModule(null);
+      setEditedProperties({});
+      setHasUnsavedChanges(false);
+      setTokensToPublish(new Set());
+      return;
+    }
+
+    // Clear previous data immediately for responsiveness
+    console.log(`Clearing state before loading collection ${id}`);
+    setTokens([]); 
+    setSelectedToken(null);
+    setSelectedCollectionData(null); // Indicate loading for collection data too
+    setCollectionModules([]);
+    setSelectedModule(null);
+    setEditedProperties({});
+    setHasUnsavedChanges(false);
+    setTokensToPublish(new Set());
+
+    // Load data sequentially or in parallel
+    try {
+        console.log(`Starting parallel load for collection ${id}`);
+        await Promise.all([ 
+            loadCollectionData(id),
+            loadTokens(id),
+            loadModule(id)
+        ]);
+        console.log(`Finished loading all data for collection ${id}`);
+    } catch (error) {
+        console.error(`Error loading data for collection ${id}:`, error);
+        // State clearing on error is handled within individual load functions now
+    }
+  }, [selectedCollection]); // Dependency: selectedCollection needed for checks inside load functions
+
+  // --- useEffect Hooks --- 
 
   useEffect(() => {
     if (account) {
@@ -48,573 +181,364 @@ export default function MegaData() {
     }
   }, [account]);
 
+  // useEffect watching selectedCollection: Now just calls the central loader
   useEffect(() => {
-    if (selectedCollection) {
-      // Find the collection data first
-      const collectionData = collections.find(c => c.id === selectedCollection) || null;
-      setSelectedCollectionData(collectionData);
-      
-      // Only load items after we have the collection data
-      if (collectionData) {
-        loadItems();
-      }
-    } else {
-      setSelectedCollectionData(null);
-    }
-  }, [selectedCollection, collections]);
+    // This effect now triggers the load when selectedCollection changes externally (like dropdown)
+    // It ensures that if the ID changes, we load data for the new ID.
+    console.log(`useEffect detected selectedCollection change to: ${selectedCollection}`);
+    // We don't call setSelectedCollection here, just the loader
+    selectAndLoadCollection(selectedCollection); 
+  }, [selectedCollection, selectAndLoadCollection]); // Add selectAndLoadCollection dependency
 
   useEffect(() => {
-    if (selectedItem) {
-      // Initialize editedProperties with a deep clone of the selected item's properties
-      setEditedProperties(JSON.parse(JSON.stringify(selectedItem.properties)));
+    if (selectedToken) {
+      setEditedProperties(JSON.parse(JSON.stringify(selectedToken.data)));
       setHasUnsavedChanges(false);
     }
-  }, [selectedItem]);
+  }, [selectedToken]);
 
-  // Track changes
   useEffect(() => {
-    if (!selectedItem) return;
+    if (!selectedToken) return;
     
-    // Deep compare the properties
     const currentProps = JSON.stringify(editedProperties);
-    const originalProps = JSON.stringify(selectedItem.properties);
+    const originalProps = JSON.stringify(selectedToken.data);
     
     if (currentProps === originalProps) {
       setHasUnsavedChanges(false);
     } else {
       setHasUnsavedChanges(true);
     }
-  }, [editedProperties, selectedItem]);
+  }, [editedProperties, selectedToken]);
 
   const loadCollections = async () => {
     if (!account) return;
     
-    // Load collections from localStorage
-    const localCollections = getLocalCollections(account);
-    
-    // Also load collections from the blockchain - these are all published collections
     try {
-      const remoteCollections = await getCollections(account);
-      
-      // Merge local and remote collections
-      // For each remote collection, add a 'published' flag
-      const remoteWithPublishedFlag = remoteCollections.map(remote => ({
-        ...remote,
-        published: true, // Remote collections are always published
-        numTokens: 0,     // We don't know this for remote collections
-        startingIndex: 0, // We don't know this for remote collections
-        moduleSettings: {}
-      }));
-      
-      // Combine collections, ensuring no duplicates by ID
-      const combinedCollections = [...localCollections];
-      
-      remoteWithPublishedFlag.forEach(remote => {
-        // If not already in combinedCollections by ID, add it
-        if (!combinedCollections.some(local => local.id === remote.id)) {
-          combinedCollections.push(remote as ExtendedMegaDataCollection);
-        }
-      });
-      
-      setCollections(combinedCollections);
+      const collections = await megadataApi.getCollections(account);
+      setCollections(collections);
     } catch (error) {
-      console.error("Failed to load collections from blockchain", error);
-      // If we can't load from blockchain, just use local collections
-      setCollections(localCollections);
+      console.error("Failed to load collections", error);
     }
   };
-
-  const loadItems = async () => {
-    if (!selectedCollection) return;
-    
-    console.time('loadItems-total');
-    
-    // Find the collection data directly from collections array
-    const collectionData = collections.find(c => c.id === selectedCollection);
-    console.log('loadItems collectionData:', collectionData);
-    
-    // If the collection is published, load items from blockchain
-    if (collectionData?.published) {
-      console.time('loadItems-blockchain');
-      try {
-        const remoteItems = await getItems(selectedCollection);
-        // Convert remote items to ExtendedMegaDataItem format
-        const extendedItems: ExtendedMegaDataItem[] = remoteItems.map(item => ({
-          collection: item.collection,
-          tokenId: item.tokenId,
-          properties: item.properties,
-          lastModified: Date.now() // Use current time since we don't have this from blockchain
-        }));
-        setItems(extendedItems);
-      } catch (error) {
-        console.error("Failed to load items from blockchain", error);
-        setItems([]); // Set empty items on error
-      }
-      console.timeEnd('loadItems-blockchain');
-    } else {
-      // For unpublished collections, load from localStorage
-      console.time('loadItems-localStorage');
-      const localItems = getLocalItems(selectedCollection);
-      setItems(localItems);
-      console.timeEnd('loadItems-localStorage');
-      
-      // Validate items that have been modified recently
-      const newValidationErrors: Record<string, string[]> = {};
-      const now = Date.now();
-      const RECENT_THRESHOLD = 5 * 60 * 1000; // 5 minutes
-      
-      localItems.forEach(item => {
-        if (item.lastModified > now - RECENT_THRESHOLD) {
-          const { isValid, errors } = validateMegadata(item.properties);
-          if (!isValid) {
-            newValidationErrors[item.tokenId] = errors;
-          }
-        }
-      });
-      
-      if (Object.keys(newValidationErrors).length > 0) {
-        setValidationErrors(newValidationErrors);
-      }
-    }
-    
-    console.timeEnd('loadItems-total');
-  };
-
-  const createMessage = (account: string, timestamp: number) => {
-    return `MegaYours MegaData Management: ${account} at ${timestamp}`;
-  }
 
   const handleCreateCollection = async (
-    name: string, 
-    numTokens: number, 
-    startingIndex: number, 
-    moduleSettings: ExtendedMegaDataCollection['moduleSettings']
+    name: string,
+    numTokens: number,
+    startingIndex: number,
+    moduleIds: string[] // Received module IDs
   ) => {
     if (!account) return;
     setIsCreatingCollection(true);
+    let newCollection: Collection | null = null; // Keep track of the created collection
     try {
-      // Create the collection in localStorage
-      const newCollection = createLocalCollection(name, numTokens, startingIndex, moduleSettings);
+      // 1. Create the collection with selected modules
+      newCollection = await megadataApi.createCollection(
+        name,
+        account,
+        moduleIds
+      );
+      console.log(`Created collection: ${newCollection.id}`);
+      setCollections(prev => [...prev, newCollection!]);
       
-      // Update collections in state
-      setCollections(prev => [...prev, newCollection]);
-      setSelectedCollection(newCollection.id);
-      
-      // No need to add pending operations anymore since we're using localStorage
+      // Reset states (redundant with selectAndLoadCollection but safe)
+      setTokens([]); 
+      setSelectedToken(null); 
+      setEditedProperties({}); 
+      setHasUnsavedChanges(false);
+      setTokensToPublish(new Set());
+
+      // *** Trigger Load AFTER Token Creation ***
+      // No need to call setSelectedCollection here, we do it AFTER tokens are done.
+
+      // 2. Fetch module details (needed for default data)
+      const moduleDetails = await Promise.all(
+        moduleIds.map(id => megadataApi.getModule(id))
+      );
+
+      // 3. Determine default data
+      const defaultData: Record<string, any> = {};
+      moduleDetails.forEach(module => {
+        if (module?.schema?.properties) {
+          const requiredFields = module.schema.required || [];
+          Object.entries(module.schema.properties).forEach(([key, propertySchema]) => {
+            if (requiredFields.includes(key) && defaultData[key] === undefined) {
+              defaultData[key] = generateDefaultValue(propertySchema);
+            }
+          });
+        }
+      });
+
+      // 4. Create the specified number of tokens
+      console.log(`Starting token creation loop for collection ${newCollection.id}`);
+      for (let i = 0; i < numTokens; i++) {
+        const tokenId = (startingIndex + i).toString();
+        const initialData = {
+          ...defaultData, 
+          name: `${name} #${tokenId}`, 
+          description: `Token #${tokenId} from ${name} collection`,
+        };
+        await megadataApi.createToken(newCollection.id, tokenId, initialData);
+      }
+      console.log(`Finished token creation loop for collection ${newCollection.id}`);
+
+      // 5. NOW set the collection and trigger the load via useEffect
+      console.log(`Setting selectedCollection to ${newCollection.id} to trigger load`);
+      setSelectedCollection(newCollection.id); 
+      // The useEffect watching selectedCollection will now call selectAndLoadCollection
+
     } catch (error) {
-      console.error('Failed to create collection:', error);
+      console.error('Failed to create collection or tokens:', error);
     } finally {
       setIsCreatingCollection(false);
       setIsCreateCollectionWizardOpen(false);
     }
   };
 
-  const handleCreateItem = () => {
-    // Don't allow creating new item if current item has validation errors
-    if (selectedItem && validationErrors[selectedItem.tokenId]?.length > 0) {
-      alert('Please fix validation errors before creating a new token');
-      return;
+  const handleCreateToken = async () => {
+    if (!selectedCollection || !newTokenId) return;
+    
+    try {
+      // 1. Determine default data based on required fields in collection schemas
+      const defaultData: Record<string, any> = {};
+      collectionModules.forEach(module => {
+        if (module?.schema?.properties) {
+          const requiredFields = module.schema.required || [];
+          Object.entries(module.schema.properties).forEach(([key, propertySchema]) => {
+            // Add default if field is required and not already added
+            if (requiredFields.includes(key) && defaultData[key] === undefined) {
+              defaultData[key] = generateDefaultValue(propertySchema);
+            }
+          });
+        }
+      });
+      
+      // 2. Merge defaults with specific token data
+      const initialData = {
+        ...defaultData, // Apply defaults first
+        name: `Token ${newTokenId}`, // Specific values override defaults
+        description: `Token #${newTokenId}`
+      };
+      
+      // 3. Create the token with combined initial data
+      const newToken = await megadataApi.createToken(selectedCollection, newTokenId, initialData);
+
+      // 4. Update local state
+      setTokens(prev => [...prev, newToken]);
+      setSelectedToken(newToken);
+      setNewTokenId('');
+    } catch (error) {
+      console.error('Failed to create token:', error);
+      // Add user feedback (e.g., toast notification)
     }
-    setIsCreatingItem(true);
-    setNewTokenId('');
-    setEditedProperties({});
-    setSelectedItem(null);
   };
 
-  const handleDeleteItem = (tokenId: string) => {
+  const handleDeleteToken = async (tokenId: string) => {
     if (!selectedCollection) return;
 
-    // Don't allow deleting if current item has validation errors
-    if (selectedItem?.tokenId === tokenId && validationErrors[tokenId]?.length > 0) {
+    if (selectedToken?.id === tokenId && validationErrors[tokenId]?.length > 0) {
       alert('Please fix validation errors before deleting the token');
       return;
     }
     
-    // Check if collection is published
-    if (selectedCollectionData?.published) {
-      alert('Cannot delete items from published collections');
+    if (selectedCollectionData?.is_published) {
+      alert('Cannot delete tokens from published collections');
       return;
     }
 
-    // Delete from localStorage
-    const deleted = deleteLocalItem(selectedCollection, tokenId);
-    
-    if (deleted) {
-      // Update items in memory
-      setItems(prev => prev.filter(item => item.tokenId !== tokenId));
-
-      // Clear selection if the deleted item was selected
-      if (selectedItem?.tokenId === tokenId) {
-        setSelectedItem(null);
+    try {
+      await megadataApi.deleteToken(selectedCollection, tokenId);
+      setTokens(prev => prev.filter(token => token.id !== tokenId));
+      if (selectedToken?.id === tokenId) {
+        setSelectedToken(null);
         setEditedProperties({});
       }
+    } catch (error) {
+      console.error('Failed to delete token:', error);
     }
   };
 
-  const handleTokenIdChange = (oldTokenId: string, newTokenId: string) => {
+  const handleTokenIdChange = async (oldTokenId: string, newTokenId: string) => {
     if (!selectedCollection) return;
+    
+    if (selectedCollectionData?.is_published) {
+      alert('Cannot modify token IDs in published collections');
+      return;
+    }
 
-    // Don't allow changing token ID if current item has validation errors
-    if (validationErrors[oldTokenId]?.length > 0) {
-      alert('Please fix validation errors before changing the token ID');
-      return;
-    }
-    
-    // Check if collection is published
-    if (selectedCollectionData?.published) {
-      alert('Cannot modify items in published collections');
-      return;
-    }
-    
-    // Find the item to update
-    const itemToUpdate = items.find(item => item.tokenId === oldTokenId);
-    if (!itemToUpdate) return;
-    
-    // Delete the old item
-    deleteLocalItem(selectedCollection, oldTokenId);
-    
-    // Create a new item with the new tokenId
-    const newItem: ExtendedMegaDataItem = {
-      ...itemToUpdate,
-      tokenId: newTokenId,
-      lastModified: Date.now()
-    };
-    
-    // Save the new item
-    const saved = saveLocalItem(newItem);
-    
-    if (saved) {
-      // Update items in memory
-      setItems(prev => prev.map(item => 
-        item.tokenId === oldTokenId ? newItem : item
+    try {
+      const token = await megadataApi.getToken(selectedCollection, oldTokenId);
+      await megadataApi.deleteToken(selectedCollection, oldTokenId);
+      const newToken = await megadataApi.createToken(selectedCollection, newTokenId, token.data);
+      
+      setTokens(prev => prev.map(t => 
+        t.id === oldTokenId ? newToken : t
       ));
-
-      // Update selected item if it was the one being edited
-      if (selectedItem?.tokenId === oldTokenId) {
-        setSelectedItem(newItem);
+      
+      if (selectedToken?.id === oldTokenId) {
+        setSelectedToken(newToken);
       }
+    } catch (error) {
+      console.error('Failed to update token ID:', error);
     }
-    
+  };
+
+  const handleTokenClick = (token: Token) => {
+    setSelectedToken(token);
     setEditingTokenId(null);
   };
 
-  // Remove the validationResults memo and validationErrors effect
-  // Instead, compute validation on demand
-  const getValidationErrors = useCallback((item: ExtendedMegaDataItem) => {
-    const result = validateMegadata(item.properties);
-    return result.isValid ? [] : result.errors;
-  }, []);
-
-  // Update handleTokenClick to use the new validation function
-  const handleTokenClick = (item: ExtendedMegaDataItem) => {
-    console.time('handleTokenClick');
-    
-    // Skip if clicking the same item
-    if (selectedItem?.tokenId === item.tokenId) {
-      console.timeEnd('handleTokenClick');
-      return;
-    }
-
-    // Batch state updates
-    const updates = () => {
-      console.time('handleTokenClick-updates');
-      setSelectedItem(item);
-      
-      // Only update edited properties if they're different
-      if (JSON.stringify(item.properties) !== JSON.stringify(editedProperties)) {
-        setEditedProperties(item.properties);
+  const handleTogglePublishSelection = (tokenId: string) => {
+    setTokensToPublish(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(tokenId)) {
+        newSet.delete(tokenId);
+      } else {
+        // Only allow selecting unpublished tokens
+        const token = tokens.find(t => t.id === tokenId);
+        if (token && !token.is_published) {
+            newSet.add(tokenId);
+        }
       }
-      
-      // Only validate if there are existing errors
-      if (validationErrors[item.tokenId]) {
-        const errors = getValidationErrors(item);
-        setValidationErrors(prev => ({
-          ...prev,
-          [item.tokenId]: errors
-        }));
-      }
-      console.timeEnd('handleTokenClick-updates');
-    };
-    
-    requestAnimationFrame(updates);
-    console.timeEnd('handleTokenClick');
+      return newSet;
+    });
   };
 
-  const handlePublishCollection = async () => {
-    if (!selectedCollection || !account || !signMessage || !accountType) return;
-    
-    // Check if there are any validation errors
-    if (Object.keys(validationErrors).length > 0) {
-      alert('Please fix all validation errors before publishing');
-      return;
-    }
-
-    // Confirm with the user
-    if (!confirm('Publishing will make this collection immutable. You will no longer be able to edit or delete items. Are you sure you want to continue?')) {
-      return;
-    }
+  const handlePublishSelectedTokens = async () => {
+    if (!selectedCollection || tokensToPublish.size === 0) return;
 
     setIsPublishing(true);
     try {
-      // Format the items for the new API
-      const formattedItems = items.map(item => ({
-        tokenId: item.tokenId,
-        properties: item.properties
-      }));
+      await megadataApi.publishTokens(selectedCollection, Array.from(tokensToPublish));
       
-      // Generate signature for blockchain operations
-      const timestamp = Date.now();
-      const message = createMessage(account, timestamp);
-      const signature = await signMessage(message);
-      const signatureData: SignatureData = {
-        type: accountType,
-        timestamp,
-        account,
-        signature
-      };
+      // Update local state to reflect published status
+      setTokens(prevTokens => 
+        prevTokens.map(token => 
+          tokensToPublish.has(token.id) ? { ...token, is_published: true } : token
+        )
+      );
       
-      // Call manageMegadata with the new format to publish to blockchain
-      const result = await manageMegadata({
-        auth: signatureData,
-        collection: selectedCollectionData?.name || 'Unnamed Collection',
-        items: formattedItems
-      });
+      // Clear selection and potentially update selected token if it was published
+      setTokensToPublish(new Set());
+      if (selectedToken && tokensToPublish.has(selectedToken.id)) {
+        setSelectedToken(prev => prev ? { ...prev, is_published: true } : null);
+        // If published, assume no unsaved changes anymore for that token
+        setHasUnsavedChanges(false); 
+        setEditedProperties({});
+      }
+      
+      // Refetch collection data to update its published status in the UI
+      await loadCollectionData(selectedCollection);
+      await loadCollections(); // Also refresh the main list for the dropdown
+      
+      // Optionally, refresh all tokens from API again
+      // await loadTokens(); 
+      
+      // Add success feedback (e.g., toast)
+      console.log('Successfully published selected tokens');
 
-      if ('error' in result) {
-        throw new Error(result.error);
-      }
-      
-      // Extract the blockchain collection ID from the result
-      const blockchainId = result.collectionId;
-      
-      if (!blockchainId) {
-        throw new Error('No collection ID returned from server');
-      }
-
-      // If blockchain operation was successful, mark as published in localStorage
-      const published = publishLocalCollection(selectedCollection, blockchainId);
-      
-      if (published) {
-        // The collection ID has changed, update selectedCollection
-        setSelectedCollection(blockchainId);
-        
-        // Reload the collections to update the UI
-        await loadCollections();
-        
-        alert('Collection published successfully!');
-      } else {
-        throw new Error('Failed to publish collection locally');
-      }
     } catch (error) {
-      console.error('Error publishing collection:', error);
-      alert('Error publishing collection. Please try again.');
+      console.error('Failed to publish tokens:', error);
+      // Add error feedback (e.g., toast)
     } finally {
       setIsPublishing(false);
     }
   };
 
-  const handleImportData = async (importedData: any) => {
-    if (!selectedCollection) {
-      alert('Please select a collection first');
-      return;
-    }
+  const handleSave = async () => {
+    if (!selectedCollection || !selectedToken || !selectedModule) return;
     
-    // Check if collection is published
-    if (selectedCollectionData?.published) {
-      alert('Cannot import items to published collections');
-      return;
-    }
-    
-    // If it's our old format, we've already imported it in the ImportExportTemplate component
-    if (importedData.collections && importedData.items) {
-      // Reload collections and items
-      await loadCollections();
-      if (selectedCollection) {
-        await loadItems();
-      }
-      return;
-    }
-    
-    // Handle an array of items (simplified format or older format)
     try {
-      const newItems: ExtendedMegaDataItem[] = [];
-      
-      for (const item of importedData) {
-        // Properties may come as either item.properties or item.megadata
-        const itemProperties = item.megadata 
-          ? { erc721: item.megadata.erc721 || {} } 
-          : (item.properties || {});
-          
-        const newItem: ExtendedMegaDataItem = {
-          collection: selectedCollection,
-          tokenId: item.tokenId,
-          properties: itemProperties,
-          lastModified: Date.now()
-        };
-        
-        // Save to localStorage
-        saveLocalItem(newItem);
-        newItems.push(newItem);
-      }
-      
-      // Update items in memory
-      setItems(newItems);
-      
-      // Validate all imported items
-      const newValidationErrors: Record<string, string[]> = {};
-      newItems.forEach(item => {
-        const { isValid, errors } = validateMegadata(item.properties);
-        if (!isValid) {
-          newValidationErrors[item.tokenId] = errors;
-        }
-      });
-      setValidationErrors(newValidationErrors);
+      // Validate the data against the module schema
+      const validationResult = await megadataApi.validateModuleData(
+        selectedModule.id,
+        editedProperties
+      );
 
-      alert('Successfully imported metadata');
+      if (!validationResult.valid) {
+        setValidationErrors(prev => ({
+          ...prev,
+          [selectedToken.id]: validationResult.errors
+        }));
+        return;
+      }
+
+      // Update the token
+      const updatedToken = await megadataApi.updateToken(
+        selectedCollection,
+        selectedToken.id,
+        editedProperties
+      );
+
+      // Update local state
+      setTokens(prev => prev.map(t => 
+        t.id === selectedToken.id ? updatedToken : t
+      ));
+      setSelectedToken(updatedToken);
+      setHasUnsavedChanges(false);
     } catch (error) {
-      console.error('Error importing data:', error);
-      alert('Error importing data. Please try again.');
+      console.error('Failed to save token:', error);
     }
   };
 
-  const handleCreateToken = (tokenId: string) => {
-    if (!tokenId.trim() || !selectedCollection) return;
+  const handleImportData = async (items: MegaDataItem[]) => {
+    if (!selectedCollection) return;
     
-    // Check if collection is published
-    if (selectedCollectionData?.published) {
-      alert('Cannot add items to published collections');
-      return;
-    }
-
-    // Create a new item in localStorage
-    const newItem: ExtendedMegaDataItem = {
-      collection: selectedCollection,
-      tokenId: tokenId.trim(),
-      properties: {},
-      lastModified: Date.now()
-    };
-    
-    const saved = saveLocalItem(newItem);
-    
-    if (saved) {
-      // Add new item to memory
-      setItems(prev => [...prev, newItem]);
-      
-      // Reset creation state
-      setIsCreatingItem(false);
-      setNewTokenId('');
-    }
-  };
-
-  const handleImageUpload = async (item: ExtendedMegaDataItem, file: File) => {
-    if (!selectedCollection || !account) {
-      alert('Please connect your wallet to upload images');
-      return;
-    }
-    
-    // Validate file type
-    if (!['image/jpeg', 'image/png'].includes(file.type)) {
-      alert('Only JPEG and PNG images are supported');
-      return;
-    }
-
-    // Convert File to Buffer
-    const arrayBuffer = await file.arrayBuffer();
-    const buffer = Buffer.from(arrayBuffer);
-
-    // Create signature
-    const timestamp = Date.now();
-    const message = createMessage(account, timestamp);
-    const signature = await signMessage(message);
-
     try {
-      // Upload to blockchain
-      const uploadResult = await uploadFile({
-        auth: {
-          type: accountType || "evm",
-          timestamp,
-          account,
-          signature,
-        },
-        data: buffer,
-        contentType: file.type,
-      });
+      // Convert MegaDataItem to Token format
+      const tokens = items.map(item => ({
+        id: item.tokenId,
+        collection_id: selectedCollection,
+        data: item.properties,
+        is_published: false
+      }));
 
-      if ('error' in uploadResult) {
-        throw new Error(uploadResult.error);
+      // Create tokens in the API
+      for (const token of tokens) {
+        await megadataApi.createToken(selectedCollection, token.id, token.data);
       }
 
-      if (!uploadResult.hash) {
-        throw new Error('Failed to get image hash from upload');
-      }
+      // Refresh tokens
+      await loadTokens();
+    } catch (error) {
+      console.error('Failed to import data:', error);
+    }
+  };
 
-      // Construct the router URI
-      const imageUrl = `${config.megaRouterUri}/megahub/${uploadResult.hash}`;
-
-      // Update the item with the new image URL
-      const updatedItem: ExtendedMegaDataItem = {
-        ...item,
-        properties: {
-          ...item.properties,
-          erc721: {
-            ...item.properties.erc721,
-            image: imageUrl,
-          }
-        }
-      };
-
-      // Save the updated item
-      const saved = saveLocalItem(updatedItem);
+  const handleImageUpload = async (token: Token, file: File) => {
+    if (!selectedCollection) return;
+    
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
       
-      if (saved) {
-        // Update the items list
-        setItems(prev => prev.map(i => 
-          i.tokenId === item.tokenId ? updatedItem : i
-        ));
-        
-        // Update selected item if it's the one being edited
-        if (selectedItem?.tokenId === item.tokenId) {
-          setSelectedItem(updatedItem);
-        }
+      const response = await fetch(`${config.megadataApiUri}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to upload image');
+      }
+      
+      const { url } = await response.json();
+      
+      // Update token with new image URL
+      const updatedToken = await megadataApi.updateToken(
+        selectedCollection,
+        token.id,
+        { ...token.data, image: url }
+      );
+      
+      // Update local state
+      setTokens(prev => prev.map(t => 
+        t.id === token.id ? updatedToken : t
+      ));
+      
+      if (selectedToken?.id === token.id) {
+        setSelectedToken(updatedToken);
       }
     } catch (error) {
       console.error('Failed to upload image:', error);
-      alert(error instanceof Error ? error.message : 'Failed to upload image. Please try again.');
-    }
-  };
-
-  const handleSave = async () => {
-    if (!selectedItem || !selectedCollection) return;
-    
-    if (selectedCollectionData?.published) return;
-    
-    setIsSaving(true);
-    try {
-      // Create a clean version of the properties by removing undefined values
-      const cleanProperties = JSON.parse(JSON.stringify(editedProperties));
-      
-      const updatedItem: ExtendedMegaDataItem = {
-        ...selectedItem,
-        properties: cleanProperties,
-        lastModified: Date.now()
-      };
-      
-      const saved = saveLocalItem(updatedItem);
-      
-      if (saved) {
-        // Update items list and selected item atomically
-        setItems(prev => prev.map(item => 
-          item.tokenId === updatedItem.tokenId ? updatedItem : item
-        ));
-        setSelectedItem(updatedItem);
-        setEditedProperties(cleanProperties);
-        setHasUnsavedChanges(false);
-      }
-    } catch (error) {
-      console.error('Save failed:', error);
-      alert('Failed to save changes. Please try again.');
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -641,20 +565,16 @@ export default function MegaData() {
           <div className="flex items-center gap-4">
             <select
               className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-              value={selectedCollection}
+              value={selectedCollection || ''}
               onChange={(e) => {
-                // Don't allow switching collection if current item has validation errors
-                if (selectedItem && validationErrors[selectedItem.tokenId]?.length > 0) {
-                  alert('Please fix validation errors before switching collections');
-                  return;
-                }
-                setSelectedCollection(e.target.value);
+                const newId = e.target.value ? Number(e.target.value) : null;
+                setSelectedCollection(newId);
               }}
             >
               <option value="">Select a collection</option>
               {collections.map((collection) => (
                 <option key={collection.id} value={collection.id}>
-                  {collection.name} {collection.published ? '(Published)' : ''}
+                  {collection.name} {collection.is_published ? '(Published)' : ''}
                 </option>
               ))}
             </select>
@@ -665,14 +585,13 @@ export default function MegaData() {
               <Plus className="mr-2 h-4 w-4" />
               New Collection
             </Button>
-            {selectedCollection && !selectedCollectionData?.published && Object.keys(validationErrors).length === 0 && (
+            {selectedCollection && (
               <Button
-                onClick={handlePublishCollection}
+                onClick={handlePublishSelectedTokens}
                 className="shrink-0"
-                disabled={isPublishing}
+                disabled={tokensToPublish.size === 0 || isPublishing}
               >
-                <Upload className="mr-2 h-4 w-4" />
-                {isPublishing ? 'Publishing...' : 'Publish Collection'}
+                {isPublishing ? 'Publishing...' : `Publish Selected (${tokensToPublish.size})`}
               </Button>
             )}
           </div>
@@ -688,16 +607,20 @@ export default function MegaData() {
             <>
               <ImportExportTemplate 
                 onImport={handleImportData} 
-                items={items} 
-                collectionId={selectedCollection} 
-                published={selectedCollectionData?.published || false}
+                items={tokens.map(token => ({
+                  collection: selectedCollection.toString(),
+                  tokenId: token.id,
+                  properties: token.data
+                }))} 
+                collectionId={selectedCollection.toString()} 
+                published={selectedCollectionData?.is_published || false}
               />
 
               <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
                 <div className="p-6">
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      {selectedCollectionData?.published 
+                      {selectedCollectionData?.is_published 
                         ? "Your token metadata is accessible through this URL:"
                         : "Once published, your token metadata will be accessible through a URL like this:"}
                     </p>
@@ -712,21 +635,19 @@ export default function MegaData() {
                           megadata
                         </code>
                         <span className="text-xs text-muted-foreground">/</span>
-                        <code className={`text-sm font-mono ${selectedCollectionData?.published ? '' : 'text-muted-foreground'}`}>
-                          {selectedCollectionData?.published 
-                            ? `${selectedCollection}`
-                            : '<Collection ID>'}
+                        <code className={`text-sm font-mono ${selectedCollectionData?.is_published ? '' : 'text-muted-foreground'}`}>
+                          {selectedCollection}
                         </code>
-                        {selectedItem && !isCreatingItem && (
+                        {selectedToken && (
                           <>
                             <span className="text-xs text-muted-foreground">/</span>
-                            <code className={`text-sm font-mono ${selectedCollectionData?.published ? 'text-primary' : 'text-muted-foreground'}`}>
-                              {selectedItem.tokenId}
+                            <code className={`text-sm font-mono ${selectedCollectionData?.is_published ? 'text-primary' : 'text-muted-foreground'}`}>
+                              {selectedToken.id}
                             </code>
                           </>
                         )}
                       </div>
-                      {selectedCollectionData?.published && (
+                      {selectedCollectionData?.is_published && (
                         <div className="space-y-2">
                           <div className="flex items-center gap-2">
                             <Button
@@ -745,7 +666,7 @@ export default function MegaData() {
                               Use this to get the base URI for the entire collection
                             </span>
                           </div>
-                          {selectedItem && !isCreatingItem && (
+                          {selectedToken && (
                             <div className="flex items-center gap-2">
                               <Button
                                 variant="outline"
@@ -753,7 +674,7 @@ export default function MegaData() {
                                 className="text-xs"
                                 onClick={() => {
                                   navigator.clipboard.writeText(
-                                    `${config.megaRouterUri}/megadata/${selectedCollection}/${selectedItem.tokenId}`
+                                    `${config.megaRouterUri}/megadata/${selectedCollection}/${selectedToken.id}`
                                   );
                                 }}
                               >
@@ -776,38 +697,19 @@ export default function MegaData() {
                   <div className="rounded-lg border bg-card text-card-foreground shadow-sm h-full flex flex-col">
                     <div className="flex items-center justify-between p-6 pb-3">
                       <h3 className="text-2xl font-medium tracking-tight">Tokens</h3>
-                      {!selectedCollectionData?.published && (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setIsCreatingItem(true)}
-                          disabled={isCreatingItem}
-                        >
-                          <Plus className="mr-2 h-4 w-4" />
-                          Create
-                        </Button>
-                      )}
                     </div>
                     <div className="flex-1 min-h-0">
                       <TokenList
-                        items={items}
-                        selectedItem={selectedItem}
+                        items={tokens} 
+                        selectedItem={selectedToken} 
                         validationErrors={validationErrors}
-                        isPublished={!!selectedCollectionData?.published}
                         onTokenClick={handleTokenClick}
-                        onDeleteToken={handleDeleteItem}
-                        editingTokenId={editingTokenId}
                         newTokenId={newTokenId}
-                        onTokenIdChange={handleTokenIdChange}
                         onNewTokenIdChange={setNewTokenId}
-                        isCreatingItem={isCreatingItem}
-                        onNewTokenKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            handleCreateToken(newTokenId);
-                          }
-                        }}
-                        onNewTokenBlur={() => handleCreateToken(newTokenId)}
+                        onNewTokenBlur={handleCreateToken}
                         onImageUpload={handleImageUpload}
+                        tokensToPublish={tokensToPublish}
+                        onTogglePublishSelection={handleTogglePublishSelection}
                       />
                     </div>
                   </div>
@@ -823,7 +725,7 @@ export default function MegaData() {
                           </span>
                         )}
                       </div>
-                      {!selectedCollectionData?.published && hasUnsavedChanges && (
+                      {hasUnsavedChanges && !selectedToken?.is_published && (
                         <Button
                           onClick={handleSave}
                           disabled={isSaving}
@@ -835,15 +737,15 @@ export default function MegaData() {
                       )}
                     </div>
                     <div className="flex-1 p-6 pt-0 min-h-0">
-                      {selectedItem ? (
+                      {selectedToken ? (
                         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
                           <MegadataForm
                             value={editedProperties}
                             onChange={(newProperties) => {
                               setEditedProperties(newProperties);
                             }}
-                            readOnly={selectedCollectionData?.published}
-                            item={selectedItem}
+                            readOnly={!!selectedToken?.is_published}
+                            schema={selectedModule?.schema}
                           />
                         </div>
                       ) : (
