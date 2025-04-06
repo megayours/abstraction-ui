@@ -287,7 +287,8 @@ export default function MegaData() {
     name: string,
     numTokens: number,
     startingIndex: number,
-    moduleIds: string[]
+    moduleIds: string[],
+    defaultData: Record<string, string>
   ) => {
     if (!account || !signMessage) {
       console.error('Account/Signer not available');
@@ -303,8 +304,7 @@ export default function MegaData() {
         const tokensToCreate = [];
         for (let i = 0; i < numTokens; i++) {
           const tokenId = (startingIndex + i).toString();
-          let defaultData: Record<string, any> = {};
-          tokensToCreate.push({ id: tokenId, data: defaultData });
+          tokensToCreate.push({ id: tokenId, data: { ...defaultData } });
         }
         await megadataApi.createTokensBulk(newCollection.id, tokensToCreate);
       }

@@ -19,7 +19,7 @@ import { fetchErc721UrisViaEnumeration, DetectedTokenData, FetchProgressCallback
 interface CreateCollectionWizardProps {
   isOpen: boolean;
   onClose: () => void;
-  onCreate: (name: string, numTokens: number, startingIndex: number, modules: string[]) => void;
+  onCreate: (name: string, numTokens: number, startingIndex: number, modules: string[], defaultData: Record<string, string>) => void;
   onAutoDetectCreate?: (name: string, modules: string[], detectedData: DetectedTokenData[]) => void; // New prop
   isCreating: boolean;
 }
@@ -246,7 +246,24 @@ export default function CreateCollectionWizard({
          alert('Please ensure all fields are filled correctly.');
          return;
       }
-      onCreate(name, numTokens, startingIndex, selectedModules);
+
+      // Get all required fields from selected modules' schemas
+      const requiredFields = new Set<string>();
+      const selectedModuleSchemas = modules
+        .filter(mod => selectedModules.includes(mod.id))
+        .forEach(mod => {
+          if (mod.schema?.required && Array.isArray(mod.schema.required)) {
+            mod.schema.required.forEach(field => requiredFields.add(field as string));
+          }
+        });
+
+      // Create default data object with empty strings for required fields
+      const defaultData: Record<string, string> = {};
+      requiredFields.forEach(field => {
+        defaultData[field] = '';
+      });
+
+      onCreate(name, numTokens, startingIndex, selectedModules, defaultData);
     }
     // Closing the dialog is handled by the parent component based on isCreating prop
   };
