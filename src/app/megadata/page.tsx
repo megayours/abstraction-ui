@@ -190,18 +190,6 @@ export default function MegaData() {
   }, [account, pendingCollectionSelection]);
 
   useEffect(() => {
-    if (selectedCollection !== null && !loadTokensCallGuard.current) {
-      console.log(`useEffect detected selectedCollection change: ${selectedCollection}`);
-      loadCollectionData(selectedCollection);
-      loadModule(selectedCollection);
-      loadTokens(selectedCollection, 1);
-
-      if (process.env.NODE_ENV === 'development') {
-        loadTokensCallGuard.current = true;
-        setTimeout(() => { loadTokensCallGuard.current = false; }, 100);
-      }
-    }
-
     if (selectedCollection === null) {
       setSelectedCollectionData(null);
       setLoadedTokens([]);
@@ -213,8 +201,24 @@ export default function MegaData() {
       setHasUnsavedChanges(false);
       setCurrentPage(1);
       setIsLoadingTokens(false);
+      return;
     }
-  }, [selectedCollection, loadCollectionData, loadModule, loadTokens]);
+
+    const loadCollectionAndTokens = async () => {
+      console.log(`Loading data for collection: ${selectedCollection}`);
+      
+      // Load collection data and modules first
+      await Promise.all([
+        loadCollectionData(selectedCollection),
+        loadModule(selectedCollection)
+      ]);
+
+      // Then load tokens
+      await loadTokens(selectedCollection, 1);
+    };
+
+    loadCollectionAndTokens();
+  }, [selectedCollection]);
 
   useEffect(() => {
     if (account) {
