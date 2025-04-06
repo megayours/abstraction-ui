@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import { 
   connectMetamask, 
   connectPhantom, 
@@ -16,11 +16,13 @@ import { fetchAccountLinks, unlinkAccounts } from '@/lib/api/abstraction-chain';
 import { toast } from 'sonner';
 import { submitAccountLinkingRequest } from '@/lib/api/megaforwarder';
 import { AccountLink } from '@/lib/types';
+import { ethers } from 'ethers'; // Import ethers
 
 interface WalletContextType {
   account: string | null;
   accountType: 'evm' | 'solana' | null;
   walletType: 'phantom' | 'metamask' | 'walletconnect' | null;
+  provider: ethers.Provider | null; // Added provider state
   isConnecting: boolean;
   connectedAccounts: AccountLink[];
   connect: (accountType: 'evm' | 'solana', walletType: 'phantom' | 'metamask' | 'walletconnect') => Promise<void>;
@@ -36,8 +38,136 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [account, setAccount] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<'evm' | 'solana' | null>(null);
   const [walletType, setWalletType] = useState<'phantom' | 'metamask' | 'walletconnect' | null>(null);
+  const [provider, setProvider] = useState<ethers.Provider | null>(null); // Added provider state
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedAccounts, setConnectedAccounts] = useState<AccountLink[]>([]);
+
+  // Define disconnect function before effects that depend on it
+  const disconnect = useCallback(async () => {
+    // Check for necessary info before proceeding
+    if (!accountType || !walletType) {
+      console.warn("Cannot disconnect, accountType or walletType missing.");
+      return;
+    }
+
+    setIsConnecting(true);
+    try {
+      // Determine the correct type for the disconnect function
+      const disconnectType = walletType === 'walletconnect' ? 'walletconnect' : 'native';
+      console.log(`Disconnecting wallet: accountType=${accountType}, disconnectType=${disconnectType}`);
+
+      // Call disconnectWallet with the correct arguments
+      await disconnectWallet(accountType, disconnectType);
+
+      setAccount(null);
+      setAccountType(null);
+      setWalletType(null);
+      setProvider(null); // Clear provider on disconnect
+      localStorage.removeItem('walletAccount');
+      localStorage.removeItem('walletAccountType');
+      localStorage.removeItem('walletType');
+      setConnectedAccounts([]);
+      toast.success("Wallet disconnected");
+    } catch (error) {
+      console.error("Error disconnecting wallet:", error);
+      toast.error(`Failed to disconnect: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsConnecting(false);
+    }
+    // Dependencies for useCallback: Include state variables used inside the function
+  }, [accountType, walletType]);
+
+  // Effect to update the provider when wallet details change
+  useEffect(() => {
+    if (account && accountType && walletType) {
+      try {
+        if (accountType === 'evm') {
+          if (walletType === 'metamask' && window.ethereum) {
+            setProvider(new ethers.BrowserProvider(window.ethereum));
+          } else if (walletType === 'walletconnect') {
+            // WalletConnect provider setup might be more complex depending on the library version
+            // This is a placeholder - consult WalletConnect documentation for correct provider instantiation
+            console.warn('WalletConnect provider setup needed');
+            setProvider(null); // Clear provider until WalletConnect setup is implemented
+          } else {
+            setProvider(null); // No EVM provider for Phantom
+          }
+        } else if (accountType === 'solana') {
+          // Ethers.js v6 doesn't directly support Solana JSON-RPC providers out-of-the-box.
+          // You might need a Solana-specific library (like @solana/web3.js) or a compatible RPC endpoint.
+          // For now, setting provider to null for Solana.
+          console.warn('Ethers.js provider for Solana requires specific setup or alternative library.');
+          setProvider(null);
+        }
+      } catch (error) {
+        console.error("Error creating provider:", error);
+        setProvider(null);
+      }
+    } else {
+      setProvider(null); // Clear provider if disconnected
+    }
+  }, [account, accountType, walletType]);
+
+  // Effect to handle network changes from the wallet provider (e.g., Metamask)
+  useEffect(() => {
+    const handleChainChanged = async (chainIdHex: string) => {
+      console.log("Wallet network changed to Chain ID:", chainIdHex);
+      toast.info(`Wallet network changed to Chain ID ${parseInt(chainIdHex, 16)}. Re-initializing provider.`);
+      setIsConnecting(true); // Indicate activity
+      try {
+        // Only re-initialize if it's an EVM account connected via Metamask/Browser Wallet
+        if (window.ethereum && accountType === 'evm' && (walletType === 'metamask')) { // Assuming only metamask uses window.ethereum directly for now
+          const newProvider = new ethers.BrowserProvider(window.ethereum);
+          // Optional: Verify account still exists on the new network (might be overkill)
+          // const accounts = await newProvider.listAccounts();
+          // if (accounts.length === 0 || accounts[0].address.toLowerCase() !== account?.toLowerCase()) {
+          //   console.warn("Account not found or mismatched after network change. Disconnecting.");
+          //   await disconnect(); // Disconnect if account mismatch
+          //   return;
+          // }
+
+          setProvider(newProvider);
+          console.log("Provider updated for new network.");
+
+          // Re-fetch network details for logging/UI update if needed
+          const network = await newProvider.getNetwork();
+          console.log(`Switched provider to network: ${network.name} (ID: ${network.chainId})`);
+
+        } else if (walletType === 'walletconnect'){
+          // WalletConnect might handle this differently via its own events/provider updates.
+          // Placeholder: Log and potentially clear provider if WC needs specific handling.
+          console.warn('Network changed for WalletConnect - specific handling might be needed.');
+          // For now, let's assume WC provider updates itself or needs manual reconnection
+          // setProvider(null);
+        } else {
+          // Handle non-EVM or other wallet types if necessary
+          console.log("Network changed, but provider update logic not applicable for current wallet/account type.");
+          setProvider(null); // Clear provider if setup is not applicable
+        }
+      } catch (error) {
+          console.error("Error handling chain change:", error);
+          toast.error("Error updating provider after network change.");
+          setProvider(null); // Clear provider on error
+      } finally {
+        setIsConnecting(false);
+      }
+    };
+
+    // Subscribe to chain changes
+    if (window.ethereum?.on) {
+      window.ethereum.on('chainChanged', handleChainChanged);
+      console.log("WalletContext: Subscribed to chainChanged event.");
+    }
+
+    // Cleanup listener on component unmount or dependency change
+    return () => {
+      if (window.ethereum?.removeListener) {
+        window.ethereum.removeListener('chainChanged', handleChainChanged);
+        console.log("WalletContext: Unsubscribed from chainChanged event.");
+      }
+    };
+    // Rerun this effect if account details change, as the handler logic might depend on them
+  }, [account, accountType, walletType, disconnect]); // Added disconnect as a dependency because it's called inside
 
   // Add initialization effect
   useEffect(() => {
@@ -124,30 +254,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       throw error;
     } finally {
       setIsConnecting(false);
-    }
-  };
-
-  const disconnect = async () => {
-    if (!accountType || !walletType) return;
-    
-    try {
-      const disconnectWalletType = walletType === 'walletconnect' ? 'walletconnect' : 'native';
-      await disconnectWallet(accountType, disconnectWalletType);
-      
-      // Clear localStorage
-      localStorage.removeItem('walletAccount');
-      localStorage.removeItem('walletAccountType');
-      localStorage.removeItem('walletType');
-
-      setAccount(null);
-      setAccountType(null);
-      setWalletType(null);
-      setConnectedAccounts([]);
-      toast.success("Wallet disconnected successfully");
-    } catch (error) {
-      console.error("Error disconnecting wallet:", error);
-      toast.error(`Failed to disconnect wallet: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
     }
   };
 
@@ -269,6 +375,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       account,
       accountType,
       walletType,
+      provider, // Include provider in context value
       isConnecting,
       connectedAccounts,
       connect,

@@ -1,20 +1,56 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useWallet } from '@/contexts/WalletContext';
 import { Button } from '@/components/ui/button';
-import { Plus, Globe, Save, Upload } from 'lucide-react';
+import { Plus, Globe, Save, Upload, Copy } from 'lucide-react';
 import CreateCollectionWizard from './components/CreateCollectionWizard';
 import ImportExportTemplate from './components/ImportExportTemplate';
-import TokenList from './components/TokenList';
+import { TokenPageableList } from '@/components/TokenPageableList';
 import MegadataForm from './components/MegadataForm';
-import { validateMegadata } from './utils/validation';
 import * as megadataApi from '@/lib/api/megadata';
 import type { Collection, Token, Module } from '@/lib/api/megadata';
 import { config } from '@/lib/config';
 import type { MegaDataItem } from '@/lib/types';
+import { CreateTokenDialog } from '@/components/CreateTokenDialog';
 
-// Helper function to generate default values based on schema type
+const EXTENDING_METADATA_MODULE_ID = 'extending_metadata';
+const TOKENS_PAGE_SIZE = 11;
+
+const mergeSchemas = (modules: Module[]): Record<string, any> | null => {
+  if (!modules || modules.length === 0) {
+    return null;
+  }
+
+  let combinedProperties: Record<string, any> = {};
+  let combinedRequired: Set<string> = new Set();
+
+  modules.forEach(mod => {
+    if (mod.schema?.properties) {
+      combinedProperties = { ...combinedProperties, ...mod.schema.properties };
+    }
+    if (mod.schema?.required && Array.isArray(mod.schema.required)) {
+      mod.schema.required.forEach(req => combinedRequired.add(req));
+    }
+  });
+
+  if (Object.keys(combinedProperties).length === 0) {
+    return null;
+  }
+
+  return {
+    type: 'object',
+    properties: combinedProperties,
+    required: Array.from(combinedRequired),
+  };
+};
+
+interface DetectedTokenData {
+  tokenId: string;
+  uri: string;
+  metadata: Record<string, any> | null;
+}
+
 const generateDefaultValue = (propertySchema: any): any => {
   if (propertySchema.default !== undefined) {
     return propertySchema.default;
@@ -26,7 +62,7 @@ const generateDefaultValue = (propertySchema: any): any => {
     case 'boolean': return false;
     case 'array': return [];
     case 'object': return {};
-    default: return null; // Or handle other types/throw error
+    default: return null;
   }
 };
 
@@ -35,456 +71,401 @@ export default function MegaData() {
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<number | null>(null);
   const [selectedCollectionData, setSelectedCollectionData] = useState<Collection | null>(null);
-  const [tokens, setTokens] = useState<Token[]>([]);
+  const [loadedTokens, setLoadedTokens] = useState<Token[]>([]);
+  const [totalTokens, setTotalTokens] = useState<number | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isLoadingTokens, setIsLoadingTokens] = useState<boolean>(false);
   const [selectedToken, setSelectedToken] = useState<Token | null>(null);
   const [isCreatingCollection, setIsCreatingCollection] = useState(false);
-  const [newTokenId, setNewTokenId] = useState('');
   const [editedProperties, setEditedProperties] = useState<Record<string, any>>({});
   const [isPublishing, setIsPublishing] = useState(false);
-  const [editingTokenId, setEditingTokenId] = useState<string | null>(null);
-  const [validationErrors, setValidationErrors] = useState<Record<string, string[]>>({});
   const [isCreateCollectionWizardOpen, setIsCreateCollectionWizardOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
-  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
   const [collectionModules, setCollectionModules] = useState<Module[]>([]);
+  const [mergedSchema, setMergedSchema] = useState<Record<string, any> | null>(null);
   const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [tokensToPublish, setTokensToPublish] = useState<Set<string>>(new Set());
+  const [pendingTokenSelection, setPendingTokenSelection] = useState<Token | null>(null);
+  const [pendingCollectionSelection, setPendingCollectionSelection] = useState<number | undefined>(undefined);
+  const [isCreatingToken, setIsCreatingToken] = useState(false);
+  const [isCreateTokenDialogOpen, setIsCreateTokenDialogOpen] = useState(false);
 
-  // --- Loading Functions --- 
+  const loadTokensCallGuard = useRef(false);
 
-  // Refactor loadCollectionData to use passed ID primarily
-  const loadCollectionData = async (id: number | null = selectedCollection) => {
+  const loadCollectionData = useCallback(async (id: number | null) => {
     if (!id) {
-        setSelectedCollectionData(null);
-        return;
+      setSelectedCollectionData(null);
+      return;
     }
     try {
       const collection = await megadataApi.getCollection(id);
-      // Only set if the loaded data is for the currently selected collection
       if (id === selectedCollection) {
         setSelectedCollectionData(collection);
       }
     } catch (error) {
       console.error(`Failed to load collection data for ${id}`, error);
-      if (id === selectedCollection) setSelectedCollectionData(null); // Clear if error for current selection
+      if (id === selectedCollection) setSelectedCollectionData(null);
     }
-  };
+  }, [selectedCollection]);
 
-  // Refactor loadTokens - remove internal check, rely on caller timing
-  const loadTokens = async (id: number | null = selectedCollection) => {
+  const loadModule = useCallback(async (id: number | null) => {
     if (!id) {
-        setTokens([]);
-        return;
+      setCollectionModules([]);
+      setMergedSchema(null);
+      return;
     }
-    console.log(`loadTokens fetching for collection ID: ${id}`); // Debugging
-    try {
-      const fetchedTokens = await megadataApi.getTokens(id);
-      // Only set if the loaded data is for the currently selected collection
-       if (id === selectedCollection) {
-            console.log(`Setting tokens for collection: ${id}`); // Debugging
-            setTokens(fetchedTokens);
-       } else {
-            console.log(`Skipping setTokens for ${id} because current selection is ${selectedCollection}`); // Debugging
-       }
-    } catch (error) {
-      console.error(`Failed to load tokens for collection ${id}:`, error);
-       if (id === selectedCollection) setTokens([]); // Clear if error for current selection
-    }
-  };
-
-  // Refactor loadModule to use passed ID primarily
-  const loadModule = async (id: number | null = selectedCollection) => {
-    if (!id) {
-        setCollectionModules([]);
-        setSelectedModule(null);
-        return;
-    }
-    // Resetting based on the ID we intend to load for
     setCollectionModules([]);
-    setSelectedModule(null);
-    
+    setMergedSchema(null);
+
     try {
       const collection = await megadataApi.getCollection(id);
-      // Check if the collection we based this on is still the selected one
       if (id === selectedCollection && collection.modules && collection.modules.length > 0) {
-          const modules = await Promise.all(
-            collection.modules.map(modId => megadataApi.getModule(modId))
-          );
-          // Final check before setting state
-          if (id === selectedCollection) {
-                setCollectionModules(modules);
-                if (modules.length > 0) {
-                    setSelectedModule(modules[0]);
-                }
-          }
+        const modules = await Promise.all(
+          collection.modules.map(modId => megadataApi.getModule(modId))
+        );
+        if (id === selectedCollection) {
+          setCollectionModules(modules);
+          const combinedSchema = mergeSchemas(modules);
+          setMergedSchema(combinedSchema);
+        }
+      } else if (id === selectedCollection) {
+        setCollectionModules([]);
+        setMergedSchema(null);
       }
     } catch (error) {
       console.error(`Failed to load module(s) for ${id}:`, error);
-      if (id === selectedCollection) { // Clear if error for current selection
-          setCollectionModules([]);
-          setSelectedModule(null);
+      if (id === selectedCollection) {
+        setCollectionModules([]);
+        setMergedSchema(null);
       }
     }
-  };
+  }, [selectedCollection]);
 
-  // New central loading function (Moved earlier)
-  const selectAndLoadCollection = useCallback(async (id: number | null) => {
-    // Set the selected ID first - NO! Set it AFTER clearing/fetching? No, the load functions check it.
-    // Let's keep setting it first, but ensure loaders check correctly.
-    // setSelectedCollection(id); // Let the caller handle setting the state externally if needed
-    
-    // If null, clear everything and return
-    if (id === null) {
+  const loadTokens = useCallback(async (id: number, page: number) => {
+    if (!id || isLoadingTokens) return;
+    console.log(`Loading tokens for collection ID: ${id}, page: ${page}`);
+    setIsLoadingTokens(true);
+    try {
+      const response = await megadataApi.getTokens(id, page, TOKENS_PAGE_SIZE);
+      if (id === selectedCollection) {
+        console.log(`Setting tokens for collection: ${id}`);
+        setLoadedTokens(response.data);
+        setTotalTokens(response.pagination.total);
+        setCurrentPage(response.pagination.page);
+      } else {
+        console.log(`Skipping setTokens for ${id} because selection changed to ${selectedCollection}`);
+      }
+    } catch (error) {
+      console.error(`Failed to load tokens for collection ${id}:`, error);
+      if (id === selectedCollection) {
+        setLoadedTokens([]);
+        setTotalTokens(0);
+      }
+    } finally {
+      if (id === selectedCollection) {
+        setIsLoadingTokens(false);
+      }
+    }
+  }, [selectedCollection, isLoadingTokens]);
+
+  const handlePageChange = useCallback((page: number) => {
+    if (selectedCollection) {
+      loadTokens(selectedCollection, page);
+    }
+  }, [selectedCollection, loadTokens]);
+
+  const loadCollections = useCallback(async () => {
+    if (!account) return;
+    try {
+      const fetchedCollections = await megadataApi.getCollections(account);
+      setCollections(fetchedCollections);
+      if (pendingCollectionSelection !== undefined && fetchedCollections.some(c => c.id === pendingCollectionSelection)) {
+        handleCollectionSelect(pendingCollectionSelection);
+        setPendingCollectionSelection(undefined);
+      }
+    } catch (error) {
+      console.error("Failed to load collections", error);
+    }
+  }, [account, pendingCollectionSelection]);
+
+  useEffect(() => {
+    if (selectedCollection !== null && !loadTokensCallGuard.current) {
+      console.log(`useEffect detected selectedCollection change: ${selectedCollection}`);
+      loadCollectionData(selectedCollection);
+      loadModule(selectedCollection);
+      loadTokens(selectedCollection, 1);
+
+      if (process.env.NODE_ENV === 'development') {
+        loadTokensCallGuard.current = true;
+        setTimeout(() => { loadTokensCallGuard.current = false; }, 100);
+      }
+    }
+
+    if (selectedCollection === null) {
       setSelectedCollectionData(null);
-      setTokens([]);
+      setLoadedTokens([]);
+      setTotalTokens(null);
       setSelectedToken(null);
       setCollectionModules([]);
-      setSelectedModule(null);
-      setEditedProperties({});
-      setHasUnsavedChanges(false);
+      setMergedSchema(null);
       setTokensToPublish(new Set());
-      return;
+      setHasUnsavedChanges(false);
+      setCurrentPage(1);
+      setIsLoadingTokens(false);
     }
-
-    // Clear previous data immediately for responsiveness
-    console.log(`Clearing state before loading collection ${id}`);
-    setTokens([]); 
-    setSelectedToken(null);
-    setSelectedCollectionData(null); // Indicate loading for collection data too
-    setCollectionModules([]);
-    setSelectedModule(null);
-    setEditedProperties({});
-    setHasUnsavedChanges(false);
-    setTokensToPublish(new Set());
-
-    // Load data sequentially or in parallel
-    try {
-        console.log(`Starting parallel load for collection ${id}`);
-        await Promise.all([ 
-            loadCollectionData(id),
-            loadTokens(id),
-            loadModule(id)
-        ]);
-        console.log(`Finished loading all data for collection ${id}`);
-    } catch (error) {
-        console.error(`Error loading data for collection ${id}:`, error);
-        // State clearing on error is handled within individual load functions now
-    }
-  }, [selectedCollection]); // Dependency: selectedCollection needed for checks inside load functions
-
-  // --- useEffect Hooks --- 
+  }, [selectedCollection, loadCollectionData, loadModule, loadTokens]);
 
   useEffect(() => {
     if (account) {
       loadCollections();
     }
-  }, [account]);
-
-  // useEffect watching selectedCollection: Now just calls the central loader
-  useEffect(() => {
-    // This effect now triggers the load when selectedCollection changes externally (like dropdown)
-    // It ensures that if the ID changes, we load data for the new ID.
-    console.log(`useEffect detected selectedCollection change to: ${selectedCollection}`);
-    // We don't call setSelectedCollection here, just the loader
-    selectAndLoadCollection(selectedCollection); 
-  }, [selectedCollection, selectAndLoadCollection]); // Add selectAndLoadCollection dependency
+  }, [account, loadCollections]);
 
   useEffect(() => {
     if (selectedToken) {
       setEditedProperties(JSON.parse(JSON.stringify(selectedToken.data)));
       setHasUnsavedChanges(false);
+    } else {
+      setEditedProperties({});
     }
   }, [selectedToken]);
 
   useEffect(() => {
     if (!selectedToken) return;
-    
+
     const currentProps = JSON.stringify(editedProperties);
     const originalProps = JSON.stringify(selectedToken.data);
-    
-    if (currentProps === originalProps) {
-      setHasUnsavedChanges(false);
-    } else {
+
+    if (currentProps !== originalProps) {
       setHasUnsavedChanges(true);
+    } else {
+      setHasUnsavedChanges(false);
     }
   }, [editedProperties, selectedToken]);
 
-  const loadCollections = async () => {
-    if (!account) return;
-    
-    try {
-      const collections = await megadataApi.getCollections(account);
-      setCollections(collections);
-    } catch (error) {
-      console.error("Failed to load collections", error);
+  useEffect(() => {
+    const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (hasUnsavedChanges) {
+        event.preventDefault();
+        event.returnValue = '';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [hasUnsavedChanges]);
+
+  const handleCollectionSelect = (id: number | null) => {
+    if (id === selectedCollection) return;
+
+    const switchCollection = () => {
+      setSelectedToken(null);
+      setEditedProperties({});
+      setSelectedCollection(id);
+      setPendingCollectionSelection(undefined);
+      setHasUnsavedChanges(false);
+    };
+
+    if (hasUnsavedChanges) {
+      if (window.confirm('You have unsaved changes. Are you sure you want to switch collections? Changes will be lost.')) {
+        switchCollection();
+      } else {
+        // Optional: Reset the dropdown visually if the select component allows it
+      }
+    } else {
+      switchCollection();
     }
   };
 
-  const handleCreateCollection = async (
+  const handleCreateCollection = useCallback(async (
     name: string,
     numTokens: number,
     startingIndex: number,
-    moduleIds: string[] // Received module IDs
+    moduleIds: string[]
   ) => {
-    if (!account) return;
+    if (!account || !signMessage) {
+      console.error('Account/Signer not available');
+      alert('Wallet not connected or account/signer not found.');
+      return;
+    }
     setIsCreatingCollection(true);
-    let newCollection: Collection | null = null; // Keep track of the created collection
     try {
-      // 1. Create the collection with selected modules
-      newCollection = await megadataApi.createCollection(
-        name,
-        account,
-        moduleIds
-      );
-      console.log(`Created collection: ${newCollection.id}`);
-      setCollections(prev => [...prev, newCollection!]);
-      
-      // Reset states (redundant with selectAndLoadCollection but safe)
-      setTokens([]); 
-      setSelectedToken(null); 
-      setEditedProperties({}); 
-      setHasUnsavedChanges(false);
-      setTokensToPublish(new Set());
+      const newCollection = await megadataApi.createCollection(name, account, moduleIds);
+      console.log('Created collection:', newCollection);
 
-      // *** Trigger Load AFTER Token Creation ***
-      // No need to call setSelectedCollection here, we do it AFTER tokens are done.
-
-      // 2. Fetch module details (needed for default data)
-      const moduleDetails = await Promise.all(
-        moduleIds.map(id => megadataApi.getModule(id))
-      );
-
-      // 3. Determine default data
-      const defaultData: Record<string, any> = {};
-      moduleDetails.forEach(module => {
-        if (module?.schema?.properties) {
-          const requiredFields = module.schema.required || [];
-          Object.entries(module.schema.properties).forEach(([key, propertySchema]) => {
-            if (requiredFields.includes(key) && defaultData[key] === undefined) {
-              defaultData[key] = generateDefaultValue(propertySchema);
-            }
-          });
+      if (numTokens > 0 && newCollection.id) {
+        const tokensToCreate = [];
+        for (let i = 0; i < numTokens; i++) {
+          const tokenId = (startingIndex + i).toString();
+          let defaultData: Record<string, any> = {};
+          tokensToCreate.push({ id: tokenId, data: defaultData });
         }
+        await megadataApi.createTokensBulk(newCollection.id, tokensToCreate);
+      }
+
+      await loadCollections();
+      setIsCreateCollectionWizardOpen(false);
+      setPendingCollectionSelection(newCollection.id);
+
+    } catch (error) {
+      console.error('Failed to create collection:', error);
+      alert(`Failed to create collection: ${error instanceof Error ? error.message : String(error)}`);
+    } finally {
+      setIsCreatingCollection(false);
+    }
+  }, [account, signMessage, loadCollections]);
+
+  const handleAutoDetectCreateCollection = useCallback(async (name: string, moduleIds: string[], detectedData: DetectedTokenData[]) => {
+    if (!account || !signMessage) {
+      console.error('handleAutoDetectCreateCollection: Account/Signer not available');
+      alert('Wallet not connected or account/signer not found.');
+      return;
+    }
+    if (detectedData.length === 0) {
+      alert("Cannot create collection with zero detected tokens.");
+      return;
+    }
+    setIsCreatingCollection(true);
+    console.log(`Creating collection '${name}' with modules [${moduleIds.join(', ')}] and ${detectedData.length} detected tokens.`);
+
+    try {
+      const newCollection = await megadataApi.createCollection(name, account, moduleIds);
+      console.log('Created collection:', newCollection);
+
+      if (!newCollection || !newCollection.id) {
+        throw new Error("Failed to create collection or received invalid collection ID.");
+      }
+
+      let requiredFields = new Set<string>();
+      try {
+        const moduleDetails = await Promise.all(moduleIds.map(id => megadataApi.getModule(id)));
+        moduleDetails.forEach(mod => {
+          if (mod?.schema?.required && Array.isArray(mod.schema.required)) {
+            mod.schema.required.forEach(field => requiredFields.add(field as string));
+          }
+        });
+      } catch (schemaError) {
+        console.warn('Failed to fetch module schemas, proceeding without defaults:', schemaError);
+      }
+
+      const tokensToCreate: megadataApi.BulkTokenCreatePayload[] = detectedData.map(item => {
+        let tokenData: Record<string, any> = {};
+        requiredFields.forEach(field => { tokenData[field] = ""; });
+        tokenData = { ...tokenData, ...(item.metadata || {}) };
+        if (moduleIds.includes(EXTENDING_METADATA_MODULE_ID)) {
+          tokenData.uri = item.uri;
+        } else {
+          tokenData.metadata_uri = item.uri;
+        }
+        return { id: item.tokenId, data: tokenData };
       });
 
-      // 4. Create the specified number of tokens
-      console.log(`Starting token creation loop for collection ${newCollection.id}`);
-      for (let i = 0; i < numTokens; i++) {
-        const tokenId = (startingIndex + i).toString();
-        const initialData = {
-          ...defaultData, 
-          name: `${name} #${tokenId}`, 
-          description: `Token #${tokenId} from ${name} collection`,
-        };
-        await megadataApi.createToken(newCollection.id, tokenId, initialData);
-      }
-      console.log(`Finished token creation loop for collection ${newCollection.id}`);
+      const createdTokens = await megadataApi.createTokensBulk(newCollection.id, tokensToCreate);
+      console.log(`Successfully created ${createdTokens.length} tokens.`);
 
-      // 5. NOW set the collection and trigger the load via useEffect
-      console.log(`Setting selectedCollection to ${newCollection.id} to trigger load`);
-      setSelectedCollection(newCollection.id); 
-      // The useEffect watching selectedCollection will now call selectAndLoadCollection
+      await loadCollections();
+      setIsCreateCollectionWizardOpen(false);
+      setPendingCollectionSelection(newCollection.id);
+      alert(`Successfully created collection '${name}' with ${detectedData.length} tokens.`);
 
     } catch (error) {
       console.error('Failed to create collection or tokens:', error);
+      alert(`Failed to create collection or tokens: ${error instanceof Error ? error.message : String(error)}`);
     } finally {
       setIsCreatingCollection(false);
-      setIsCreateCollectionWizardOpen(false);
     }
-  };
+  }, [account, signMessage, loadCollections]);
 
-  const handleCreateToken = async () => {
-    if (!selectedCollection || !newTokenId) return;
-    
-    try {
-      // 1. Determine default data based on required fields in collection schemas
-      const defaultData: Record<string, any> = {};
-      collectionModules.forEach(module => {
-        if (module?.schema?.properties) {
-          const requiredFields = module.schema.required || [];
-          Object.entries(module.schema.properties).forEach(([key, propertySchema]) => {
-            // Add default if field is required and not already added
-            if (requiredFields.includes(key) && defaultData[key] === undefined) {
-              defaultData[key] = generateDefaultValue(propertySchema);
-            }
-          });
-        }
-      });
-      
-      // 2. Merge defaults with specific token data
-      const initialData = {
-        ...defaultData, // Apply defaults first
-        name: `Token ${newTokenId}`, // Specific values override defaults
-        description: `Token #${newTokenId}`
-      };
-      
-      // 3. Create the token with combined initial data
-      const newToken = await megadataApi.createToken(selectedCollection, newTokenId, initialData);
+  const handleTokenClick = useCallback((token: Token) => {
+    if (token.id === selectedToken?.id) return;
 
-      // 4. Update local state
-      setTokens(prev => [...prev, newToken]);
-      setSelectedToken(newToken);
-      setNewTokenId('');
-    } catch (error) {
-      console.error('Failed to create token:', error);
-      // Add user feedback (e.g., toast notification)
-    }
-  };
+    const selectToken = () => {
+      setSelectedToken(token);
+      setEditedProperties({ ...token.data });
+    };
 
-  const handleDeleteToken = async (tokenId: string) => {
-    if (!selectedCollection) return;
-
-    if (selectedToken?.id === tokenId && validationErrors[tokenId]?.length > 0) {
-      alert('Please fix validation errors before deleting the token');
-      return;
-    }
-    
-    if (selectedCollectionData?.is_published) {
-      alert('Cannot delete tokens from published collections');
-      return;
-    }
-
-    try {
-      await megadataApi.deleteToken(selectedCollection, tokenId);
-      setTokens(prev => prev.filter(token => token.id !== tokenId));
-      if (selectedToken?.id === tokenId) {
-        setSelectedToken(null);
-        setEditedProperties({});
+    if (hasUnsavedChanges) {
+      if (window.confirm('You have unsaved changes for the current token. Are you sure you want to switch? Changes will be lost.')) {
+        selectToken();
+      } else {
+        // Do nothing, keep current selection and changes
       }
-    } catch (error) {
-      console.error('Failed to delete token:', error);
+    } else {
+      selectToken();
     }
-  };
+  }, [hasUnsavedChanges, selectedToken?.id]);
 
-  const handleTokenIdChange = async (oldTokenId: string, newTokenId: string) => {
-    if (!selectedCollection) return;
-    
-    if (selectedCollectionData?.is_published) {
-      alert('Cannot modify token IDs in published collections');
-      return;
-    }
-
-    try {
-      const token = await megadataApi.getToken(selectedCollection, oldTokenId);
-      await megadataApi.deleteToken(selectedCollection, oldTokenId);
-      const newToken = await megadataApi.createToken(selectedCollection, newTokenId, token.data);
-      
-      setTokens(prev => prev.map(t => 
-        t.id === oldTokenId ? newToken : t
-      ));
-      
-      if (selectedToken?.id === oldTokenId) {
-        setSelectedToken(newToken);
-      }
-    } catch (error) {
-      console.error('Failed to update token ID:', error);
-    }
-  };
-
-  const handleTokenClick = (token: Token) => {
-    setSelectedToken(token);
-    setEditingTokenId(null);
-  };
-
-  const handleTogglePublishSelection = (tokenId: string) => {
+  const handleTogglePublishSelection = useCallback((tokenId: string) => {
     setTokensToPublish(prev => {
       const newSet = new Set(prev);
       if (newSet.has(tokenId)) {
         newSet.delete(tokenId);
       } else {
-        // Only allow selecting unpublished tokens
-        const token = tokens.find(t => t.id === tokenId);
+        const token = loadedTokens.find(t => t.id === tokenId);
         if (token && !token.is_published) {
-            newSet.add(tokenId);
+          newSet.add(tokenId);
         }
       }
       return newSet;
     });
-  };
+  }, [loadedTokens]);
 
-  const handlePublishSelectedTokens = async () => {
-    if (!selectedCollection || tokensToPublish.size === 0) return;
+  const handlePublishSelectedTokens = useCallback(async () => {
+    if (!selectedCollection || tokensToPublish.size === 0 || !account || !signMessage) return;
 
     setIsPublishing(true);
     try {
       await megadataApi.publishTokens(selectedCollection, Array.from(tokensToPublish));
-      
-      // Update local state to reflect published status
-      setTokens(prevTokens => 
-        prevTokens.map(token => 
-          tokensToPublish.has(token.id) ? { ...token, is_published: true } : token
-        )
-      );
-      
-      // Clear selection and potentially update selected token if it was published
+
+      setLoadedTokens(prevTokens => prevTokens.map(token => tokensToPublish.has(token.id) ? { ...token, is_published: true } : token));
       setTokensToPublish(new Set());
       if (selectedToken && tokensToPublish.has(selectedToken.id)) {
         setSelectedToken(prev => prev ? { ...prev, is_published: true } : null);
-        // If published, assume no unsaved changes anymore for that token
-        setHasUnsavedChanges(false); 
+        setHasUnsavedChanges(false);
         setEditedProperties({});
       }
-      
-      // Refetch collection data to update its published status in the UI
-      await loadCollectionData(selectedCollection);
-      await loadCollections(); // Also refresh the main list for the dropdown
-      
-      // Optionally, refresh all tokens from API again
-      // await loadTokens(); 
-      
-      // Add success feedback (e.g., toast)
+
+      await loadTokens(selectedCollection, 1);
+      await loadCollections();
+
       console.log('Successfully published selected tokens');
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to publish tokens:', error);
-      // Add error feedback (e.g., toast)
+      alert(`Publishing failed: ${error.message || 'Unknown error'}`);
     } finally {
       setIsPublishing(false);
     }
-  };
+  }, [selectedCollection, account, signMessage, tokensToPublish, loadTokens]);
 
-  const handleSave = async () => {
-    if (!selectedCollection || !selectedToken || !selectedModule) return;
-    
+  const handleSave = useCallback(async () => {
+    if (!selectedToken || !selectedCollection || !account || !signMessage) return;
+
+    setIsSaving(true);
     try {
-      // Validate the data against the module schema
-      const validationResult = await megadataApi.validateModuleData(
-        selectedModule.id,
-        editedProperties
-      );
-
-      if (!validationResult.valid) {
-        setValidationErrors(prev => ({
-          ...prev,
-          [selectedToken.id]: validationResult.errors
-        }));
-        return;
-      }
-
-      // Update the token
       const updatedToken = await megadataApi.updateToken(
         selectedCollection,
         selectedToken.id,
         editedProperties
       );
 
-      // Update local state
-      setTokens(prev => prev.map(t => 
-        t.id === selectedToken.id ? updatedToken : t
-      ));
+      setLoadedTokens(prev => prev.map(t => t.id === selectedToken.id ? updatedToken : t));
       setSelectedToken(updatedToken);
       setHasUnsavedChanges(false);
+      await loadTokens(selectedCollection, 1);
     } catch (error) {
-      console.error('Failed to save token:', error);
+      console.error('Failed to save token data:', error);
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [selectedToken, selectedCollection, account, signMessage, editedProperties, loadTokens]);
 
-  const handleImportData = async (items: MegaDataItem[]) => {
-    if (!selectedCollection) return;
-    
+  const handleImportData = useCallback(async (items: MegaDataItem[]) => {
+    if (!selectedCollection || !account || !signMessage) return;
+
     try {
-      // Convert MegaDataItem to Token format
       const tokens = items.map(item => ({
         id: item.tokenId,
         collection_id: selectedCollection,
@@ -492,55 +473,105 @@ export default function MegaData() {
         is_published: false
       }));
 
-      // Create tokens in the API
-      for (const token of tokens) {
-        await megadataApi.createToken(selectedCollection, token.id, token.data);
-      }
+      await megadataApi.createTokensBulk(selectedCollection, tokens);
 
-      // Refresh tokens
-      await loadTokens();
-    } catch (error) {
+      setHasUnsavedChanges(false);
+      await loadTokens(selectedCollection, 1);
+    } catch (error: any) {
       console.error('Failed to import data:', error);
+      alert(`Import failed: ${error.message || 'Unknown error'}`);
     }
-  };
+  }, [selectedCollection, account, signMessage, loadTokens]);
 
-  const handleImageUpload = async (token: Token, file: File) => {
-    if (!selectedCollection) return;
-    
+  const handleImageUpload = useCallback(async (token: Token, file: File) => {
+    if (!selectedCollection || !account || !signMessage || !token) return;
+
     try {
       const formData = new FormData();
       formData.append('file', file);
-      
+
       const response = await fetch(`${config.megadataApiUri}/upload`, {
         method: 'POST',
         body: formData
       });
-      
+
       if (!response.ok) {
         throw new Error('Failed to upload image');
       }
-      
+
       const { url } = await response.json();
-      
-      // Update token with new image URL
+
       const updatedToken = await megadataApi.updateToken(
         selectedCollection,
         token.id,
         { ...token.data, image: url }
       );
-      
-      // Update local state
-      setTokens(prev => prev.map(t => 
-        t.id === token.id ? updatedToken : t
-      ));
-      
+
+      setLoadedTokens(prev => prev.map(t => t.id === token.id ? updatedToken : t));
       if (selectedToken?.id === token.id) {
         setSelectedToken(updatedToken);
       }
     } catch (error) {
       console.error('Failed to upload image:', error);
     }
-  };
+  }, [selectedCollection, account, signMessage]);
+
+  const handleCreateToken = useCallback(async (tokenId: string) => {
+    if (!selectedCollection || !account || !signMessage) return;
+    setIsCreatingToken(true);
+
+    let defaultData: Record<string, any> = {};
+    if (mergedSchema?.properties) {
+      Object.entries(mergedSchema.properties).forEach(([key, propSchema]) => {
+        defaultData[key] = generateDefaultValue(propSchema);
+      });
+    }
+
+    try {
+      const [newToken] = await megadataApi.createTokensBulk(selectedCollection, [{ id: tokenId, data: defaultData }]);
+      
+      // Calculate the new total and last page
+      const newTotal = (totalTokens ?? 0) + 1;
+      const lastPage = Math.ceil(newTotal / TOKENS_PAGE_SIZE);
+      
+      // Load the last page
+      await loadTokens(selectedCollection, lastPage);
+      
+      // Select the newly created token for editing
+      setSelectedToken(newToken);
+      setEditedProperties({ ...newToken.data });
+      setHasUnsavedChanges(false);
+    } catch (error) {
+      throw error;
+    } finally {
+      setIsCreatingToken(false);
+    }
+  }, [selectedCollection, account, signMessage, mergedSchema, loadTokens, totalTokens]);
+
+  const handleCreateTokenClick = useCallback(() => {
+    setIsCreateTokenDialogOpen(true);
+  }, []);
+
+  const handleDeleteToken = useCallback(async (tokenId: string) => {
+    if (!selectedCollection || !account || !signMessage || !confirm(`Are you sure you want to delete token ${tokenId}? This cannot be undone.`)) return;
+
+    try {
+      await megadataApi.deleteToken(selectedCollection, tokenId);
+
+      setLoadedTokens(prev => prev.filter(token => token.id !== tokenId));
+      if (selectedToken?.id === tokenId) {
+        setSelectedToken(null);
+        setEditedProperties({});
+      }
+      setTokensToPublish(prev => { const next = new Set(prev); next.delete(tokenId); return next; });
+      setTotalTokens(prev => prev ? prev - 1 : null);
+
+      // Optionally reload the current page if counts change significantly or re-sorting is needed
+      // await loadTokens(selectedCollection, 1);
+    } catch (error) {
+      console.error('Failed to delete token:', error);
+    }
+  }, [selectedCollection, account, signMessage, selectedToken, loadTokens]);
 
   if (!account) {
     return (
@@ -568,7 +599,7 @@ export default function MegaData() {
               value={selectedCollection || ''}
               onChange={(e) => {
                 const newId = e.target.value ? Number(e.target.value) : null;
-                setSelectedCollection(newId);
+                handleCollectionSelect(newId);
               }}
             >
               <option value="">Select a collection</option>
@@ -600,19 +631,20 @@ export default function MegaData() {
             isOpen={isCreateCollectionWizardOpen}
             onClose={() => setIsCreateCollectionWizardOpen(false)}
             onCreate={handleCreateCollection}
+            onAutoDetectCreate={handleAutoDetectCreateCollection}
             isCreating={isCreatingCollection}
           />
 
           {selectedCollection && (
             <>
-              <ImportExportTemplate 
-                onImport={handleImportData} 
-                items={tokens.map(token => ({
+              <ImportExportTemplate
+                onImport={handleImportData}
+                items={loadedTokens.map(token => ({
                   collection: selectedCollection.toString(),
                   tokenId: token.id,
                   properties: token.data
-                }))} 
-                collectionId={selectedCollection.toString()} 
+                }))}
+                collectionId={selectedCollection.toString()}
                 published={selectedCollectionData?.is_published || false}
               />
 
@@ -620,7 +652,7 @@ export default function MegaData() {
                 <div className="p-6">
                   <div className="space-y-4">
                     <p className="text-sm text-muted-foreground">
-                      {selectedCollectionData?.is_published 
+                      {selectedCollectionData?.is_published
                         ? "Your token metadata is accessible through this URL:"
                         : "Once published, your token metadata will be accessible through a URL like this:"}
                     </p>
@@ -685,6 +717,48 @@ export default function MegaData() {
                               </span>
                             </div>
                           )}
+                          {collectionModules.some(module => module.id === EXTENDING_METADATA_MODULE_ID) && (
+                            <div className="mt-8">
+                              <p className="text-xs text-gray-400 mb-2">
+                                Use this MegaRouter as a gateway to your token metadata. It acts as a dynamic gateway, applying Megadata module logic to the Base Token URI's content before serving it.
+                              </p>
+                              <div className="flex items-center gap-2 mt-4 p-3 bg-muted/50 rounded-md">
+                                <Globe className="h-4 w-4 text-muted-foreground shrink-0" />
+                                <code className="text-sm font-mono text-muted-foreground">
+                                  {config.megaRouterUri}
+                                </code>
+                                <span className="text-xs text-muted-foreground">/</span>
+                                <code className="text-sm font-mono text-muted-foreground">
+                                  ext
+                                </code>
+                                <span className="text-xs text-muted-foreground">/</span>
+                                {selectedToken && (
+                                  <>
+                                    <code
+                                      title={selectedToken.data?.uri}
+                                      className={`block truncate max-w-[200px] text-sm font-mono ${selectedCollectionData?.is_published ? 'text-primary' : 'text-muted-foreground'}`}>
+                                      {selectedToken.data?.uri}
+                                    </code>
+                                  </>
+                                )}
+                                {selectedToken?.data?.uri && (
+                                  <Button
+                                    variant="outline"
+                                    size="icon"
+                                    className="h-6 w-6 ml-2 shrink-0"
+                                    onClick={() => {
+                                      navigator.clipboard.writeText(
+                                        `${config.megaRouterUri}/ext/${selectedToken.data.uri}`
+                                      );
+                                    }}
+                                  >
+                                    <Copy className="h-3 w-3" />
+                                    <span className="sr-only">Copy Gateway URI</span>
+                                  </Button>
+                                )}
+                              </div>
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -699,17 +773,19 @@ export default function MegaData() {
                       <h3 className="text-2xl font-medium tracking-tight">Tokens</h3>
                     </div>
                     <div className="flex-1 min-h-0">
-                      <TokenList
-                        items={tokens} 
-                        selectedItem={selectedToken} 
-                        validationErrors={validationErrors}
+                      <TokenPageableList
+                        items={loadedTokens}
+                        totalItems={totalTokens ?? 0}
+                        currentPage={currentPage}
+                        pageSize={TOKENS_PAGE_SIZE}
+                        isLoading={isLoadingTokens}
+                        selectedToken={selectedToken}
                         onTokenClick={handleTokenClick}
-                        newTokenId={newTokenId}
-                        onNewTokenIdChange={setNewTokenId}
-                        onNewTokenBlur={handleCreateToken}
+                        onPageChange={handlePageChange}
                         onImageUpload={handleImageUpload}
                         tokensToPublish={tokensToPublish}
                         onTogglePublishSelection={handleTogglePublishSelection}
+                        onCreateToken={handleCreateTokenClick}
                       />
                     </div>
                   </div>
@@ -740,17 +816,15 @@ export default function MegaData() {
                       {selectedToken ? (
                         <div className="rounded-lg border bg-card text-card-foreground shadow-sm">
                           <MegadataForm
+                            schema={mergedSchema ?? undefined}
                             value={editedProperties}
-                            onChange={(newProperties) => {
-                              setEditedProperties(newProperties);
-                            }}
-                            readOnly={!!selectedToken?.is_published}
-                            schema={selectedModule?.schema}
+                            onChange={setEditedProperties}
+                            readOnly={isSaving || isPublishing}
                           />
                         </div>
                       ) : (
                         <div className="flex items-center justify-center h-full text-muted-foreground">
-                          Select a token to view and edit its metadata
+                          Select a token to view or edit its Megadata.
                         </div>
                       )}
                     </div>
@@ -760,7 +834,14 @@ export default function MegaData() {
             </>
           )}
         </div>
+
+        <CreateTokenDialog
+          isOpen={isCreateTokenDialogOpen}
+          onClose={() => setIsCreateTokenDialogOpen(false)}
+          onConfirm={handleCreateToken}
+          isCreating={isCreatingToken}
+        />
       </div>
     </section>
   );
-} 
+}

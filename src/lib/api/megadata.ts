@@ -40,6 +40,22 @@ export interface ValidationResult {
   errors: string[];
 }
 
+export type BulkTokenCreatePayload = {
+  id: string; // Token ID
+  data: Record<string, any>; // Metadata
+};
+
+// Interface for the paginated response structure
+export interface PaginatedTokensResponse {
+  data: Token[];
+  pagination: {
+    total: number;
+    page: number;
+    limit: number;
+    total_pages: number;
+  };
+}
+
 const API_URL = config.megadataApiUri;
 
 export async function getCollections(accountId: string): Promise<Collection[]> {
@@ -110,24 +126,11 @@ export async function publishCollection(collection_id: number, token_ids: string
   return response.json();
 }
 
-export async function getTokens(collection_id: number): Promise<Token[]> {
-  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens`);
+export async function getTokens(collection_id: number, page: number = 1, limit: number = 50): Promise<PaginatedTokensResponse> {
+  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens?page=${page}&limit=${limit}`);
   if (!response.ok) {
-    throw new Error('Failed to fetch tokens');
-  }
-  return response.json();
-}
-
-export async function createToken(collection_id: number, id: string, data: Record<string, any>): Promise<Token> {
-  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens`, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ id, data }),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to create token');
+    const errorData = await response.json().catch(() => ({ error: 'Failed to fetch tokens' }));
+    throw new Error(errorData.error || 'Failed to fetch tokens');
   }
   return response.json();
 }
@@ -253,3 +256,23 @@ export const publishTokens = async (collectionId: number, tokenIds: string[]): P
   // Adjust based on actual API response if needed
   return { success: true }; 
 }; 
+
+// New function for bulk token creation
+export const createTokensBulk = async (
+  collectionId: number,
+  tokens: BulkTokenCreatePayload[]
+): Promise<Token[]> => {
+  const response = await fetch(`${API_URL}/megadata/collections/${collectionId}/tokens`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(tokens),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
+    throw new Error(errorData.error || `Failed to bulk create tokens: ${response.statusText}`);
+  }
+  return response.json();
+};
