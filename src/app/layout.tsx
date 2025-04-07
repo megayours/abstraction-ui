@@ -5,6 +5,7 @@ import { HeroHeader } from "@/components/hero8-header";
 import { GoogleAnalytics } from "@next/third-parties/google";
 import FooterSection from "@/components/footer";
 import { WalletProvider } from "@/contexts/WalletContext";
+import { Web3AuthProvider } from '@/providers/web3auth-provider';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -44,12 +45,14 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
-        <WalletProvider>
-          <HeroHeader />
-          {children}
-          <FooterSection />
-          <GoogleAnalytics gaId="G-7FPP34LNNL" />
-        </WalletProvider>
+        <Web3AuthProvider>
+          <WalletProvider>
+            <HeroHeader />
+            {children}
+            <FooterSection />
+            <GoogleAnalytics gaId="G-7FPP34LNNL" />
+          </WalletProvider>
+        </Web3AuthProvider>
       </body>
     </html>
   );

@@ -58,21 +58,29 @@ export interface PaginatedTokensResponse {
 
 const API_URL = config.megadataApiUri;
 
-export async function getCollections(accountId: string): Promise<Collection[]> {
-  const response = await fetch(`${API_URL}/megadata/collections?account_id=${accountId}`);
+const addAuthHeaders = (headers: HeadersInit) => {
+  return {
+    ...headers,
+    'Authorization': `Bearer ${localStorage.getItem('token')}`,
+    'X-App-Pub-Key': `${localStorage.getItem('app_pub_key')}`
+  }
+}
+
+export async function getCollections(): Promise<Collection[]> {
+  const response = await fetch(`${API_URL}/megadata/collections`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch collections');
   }
   return response.json();
 }
 
-export async function createCollection(name: string, accountId: string, modules: string[]): Promise<Collection> {
+export async function createCollection(name: string, modules: string[]): Promise<Collection> {
   const response = await fetch(`${API_URL}/megadata/collections`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name, account_id: accountId, modules }),
+    headers: addAuthHeaders({}),
+    body: JSON.stringify({ name, modules }),
   });
   if (!response.ok) {
     throw new Error('Failed to create collection');
@@ -81,20 +89,20 @@ export async function createCollection(name: string, accountId: string, modules:
 }
 
 export async function getCollection(collection_id: number): Promise<Collection> {
-  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}`);
+  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch collection');
   }
   return response.json();
 }
 
-export async function updateCollection(collection_id: number, name: string, account_id: string): Promise<Collection> {
+export async function updateCollection(collection_id: number, name: string): Promise<Collection> {
   const response = await fetch(`${API_URL}/megadata/collections/${collection_id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ name, account_id }),
+    headers: addAuthHeaders({}),
+    body: JSON.stringify({ name }),
   });
   if (!response.ok) {
     throw new Error('Failed to update collection');
@@ -105,6 +113,7 @@ export async function updateCollection(collection_id: number, name: string, acco
 export async function deleteCollection(collection_id: number): Promise<Collection> {
   const response = await fetch(`${API_URL}/megadata/collections/${collection_id}`, {
     method: 'DELETE',
+    headers: addAuthHeaders({})
   });
   if (!response.ok) {
     throw new Error('Failed to delete collection');
@@ -115,9 +124,7 @@ export async function deleteCollection(collection_id: number): Promise<Collectio
 export async function publishCollection(collection_id: number, token_ids: string[]): Promise<{ success: boolean }> {
   const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/publish`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: addAuthHeaders({}),
     body: JSON.stringify(token_ids),
   });
   if (!response.ok) {
@@ -127,7 +134,9 @@ export async function publishCollection(collection_id: number, token_ids: string
 }
 
 export async function getTokens(collection_id: number, page: number = 1, limit: number = 50): Promise<PaginatedTokensResponse> {
-  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens?page=${page}&limit=${limit}`);
+  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens?page=${page}&limit=${limit}`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     const errorData = await response.json().catch(() => ({ error: 'Failed to fetch tokens' }));
     throw new Error(errorData.error || 'Failed to fetch tokens');
@@ -136,7 +145,9 @@ export async function getTokens(collection_id: number, page: number = 1, limit: 
 }
 
 export async function getToken(collection_id: number, token_id: string): Promise<Token> {
-  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens/${token_id}`);
+  const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens/${token_id}`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch token');
   }
@@ -146,9 +157,7 @@ export async function getToken(collection_id: number, token_id: string): Promise
 export async function updateToken(collection_id: number, token_id: string, data: Record<string, any>): Promise<Token> {
   const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens/${token_id}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: addAuthHeaders({}),
     body: JSON.stringify({ data }),
   });
   if (!response.ok) {
@@ -160,6 +169,7 @@ export async function updateToken(collection_id: number, token_id: string, data:
 export async function deleteToken(collection_id: number, token_id: string): Promise<Token> {
   const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens/${token_id}`, {
     method: 'DELETE',
+    headers: addAuthHeaders({})
   });
   if (!response.ok) {
     throw new Error('Failed to delete token');
@@ -168,7 +178,9 @@ export async function deleteToken(collection_id: number, token_id: string): Prom
 }
 
 export async function getAccounts(): Promise<Account[]> {
-  const response = await fetch(`${API_URL}/accounts`);
+  const response = await fetch(`${API_URL}/accounts`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch accounts');
   }
@@ -178,9 +190,7 @@ export async function getAccounts(): Promise<Account[]> {
 export async function createAccount(id: string, type: string): Promise<Account> {
   const response = await fetch(`${API_URL}/accounts`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: addAuthHeaders({}),
     body: JSON.stringify({ id, type }),
   });
   if (!response.ok) {
@@ -190,7 +200,9 @@ export async function createAccount(id: string, type: string): Promise<Account> 
 }
 
 export async function getAccount(id: string): Promise<Account> {
-  const response = await fetch(`${API_URL}/accounts/${id}`);
+  const response = await fetch(`${API_URL}/accounts/${id}`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch account');
   }
@@ -200,6 +212,7 @@ export async function getAccount(id: string): Promise<Account> {
 export async function deleteAccount(id: string): Promise<{ success: boolean }> {
   const response = await fetch(`${API_URL}/accounts/${id}`, {
     method: 'DELETE',
+    headers: addAuthHeaders({})
   });
   if (!response.ok) {
     throw new Error('Failed to delete account');
@@ -208,7 +221,9 @@ export async function deleteAccount(id: string): Promise<{ success: boolean }> {
 }
 
 export async function getModules(): Promise<Module[]> {
-  const response = await fetch(`${API_URL}/modules`);
+  const response = await fetch(`${API_URL}/modules`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch modules');
   }
@@ -216,7 +231,9 @@ export async function getModules(): Promise<Module[]> {
 }
 
 export async function getModule(id: string): Promise<Module> {
-  const response = await fetch(`${API_URL}/modules/${id}`);
+  const response = await fetch(`${API_URL}/modules/${id}`, {
+    headers: addAuthHeaders({})
+  });
   if (!response.ok) {
     throw new Error('Failed to fetch module');
   }
@@ -226,9 +243,7 @@ export async function getModule(id: string): Promise<Module> {
 export async function validateModuleData(moduleId: string, data: Record<string, any>): Promise<ValidationResult> {
   const response = await fetch(`${API_URL}/modules/${moduleId}/validate`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: addAuthHeaders({}),
     body: JSON.stringify(data),
   });
   if (!response.ok) {
@@ -241,39 +256,29 @@ export async function validateModuleData(moduleId: string, data: Record<string, 
 export const publishTokens = async (collectionId: number, tokenIds: string[], publishAll: boolean = false): Promise<{ success: boolean }> => {
   const response = await fetch(`${API_URL}/megadata/collections/${collectionId}/publish`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: addAuthHeaders({}),
     body: JSON.stringify({
       token_ids: tokenIds,
       all: publishAll
     }),
   });
-
   if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to publish tokens');
+    throw new Error('Failed to publish tokens');
   }
-
-  return { success: true }; 
+  return response.json();
 };
 
-// New function for bulk token creation
 export const createTokensBulk = async (
   collectionId: number,
   tokens: BulkTokenCreatePayload[]
 ): Promise<Token[]> => {
   const response = await fetch(`${API_URL}/megadata/collections/${collectionId}/tokens`, {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: addAuthHeaders({}),
     body: JSON.stringify(tokens),
   });
-
   if (!response.ok) {
-    const errorData = await response.json().catch(() => ({ error: 'Failed to parse error response' }));
-    throw new Error(errorData.error || `Failed to bulk create tokens: ${response.statusText}`);
+    throw new Error('Failed to create tokens');
   }
   return response.json();
 };

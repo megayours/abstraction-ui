@@ -16,6 +16,7 @@ import {
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AlertCircle, Check, Loader2 } from "lucide-react"
 import { useWallet } from "@/contexts/WalletContext"
+import { useWeb3Auth } from '@/providers/web3auth-provider'
 import { useState } from "react"
 
 interface AccountLinkingModalProps {
@@ -24,7 +25,8 @@ interface AccountLinkingModalProps {
 }
 
 export function AccountLinkingModal({ open, onOpenChange }: AccountLinkingModalProps) {
-    const { account, accountType, walletType, linkAccount } = useWallet()
+    const { accountType, walletType, linkAccount } = useWallet()
+    const { walletAddress } = useWeb3Auth()
     const [newAccountType, setNewAccountType] = useState<"evm" | "solana">("evm")
     const [newWalletType, setNewWalletType] = useState<"phantom" | "metamask" | "walletconnect">("metamask")
     const [newAccount, setNewAccount] = useState("")
@@ -75,7 +77,7 @@ export function AccountLinkingModal({ open, onOpenChange }: AccountLinkingModalP
 
     // Link accounts
     const handleLinkAccount = async () => {
-        if (!account || !accountType || !walletType) {
+        if (!walletAddress) {
             toast.error("Please connect your main wallet first")
             return
         }
@@ -113,12 +115,12 @@ export function AccountLinkingModal({ open, onOpenChange }: AccountLinkingModalP
                 <div className="grid grid-cols-1 gap-6">
                     <div className="space-y-4">
                         <Label className="text-lg font-medium">Main Wallet</Label>
-                        {account ? (
+                        {walletAddress ? (
                             <Alert className="border-2 border-green-100 bg-green-50">
                                 <Check className="h-5 w-5 text-green-600" />
                                 <AlertTitle className="text-lg font-semibold text-green-800">Connected</AlertTitle>
                                 <AlertDescription className="font-mono text-base break-all text-green-700">
-                                    {account}
+                                    {walletAddress}
                                 </AlertDescription>
                             </Alert>
                         ) : (
@@ -218,7 +220,7 @@ export function AccountLinkingModal({ open, onOpenChange }: AccountLinkingModalP
 
                                 <Button 
                                     onClick={handleLinkAccount}
-                                    disabled={isLinking || !account}
+                                    disabled={isLinking || !walletAddress}
                                     className="w-full h-14 text-lg font-semibold bg-[#0f172a] text-white hover:bg-[#1e293b] rounded-lg"
                                 >
                                     {isLinking ? (

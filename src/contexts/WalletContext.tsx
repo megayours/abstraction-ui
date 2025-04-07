@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { submitAccountLinkingRequest } from '@/lib/api/megaforwarder';
 import { AccountLink } from '@/lib/types';
 import { ethers } from 'ethers'; // Import ethers
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 
 interface WalletContextType {
   account: string | null;
@@ -35,6 +36,7 @@ interface WalletContextType {
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
+  const { walletAddress, web3auth } = useWeb3Auth();
   const [account, setAccount] = useState<string | null>(null);
   const [accountType, setAccountType] = useState<'evm' | 'solana' | null>(null);
   const [walletType, setWalletType] = useState<'phantom' | 'metamask' | 'walletconnect' | null>(null);
@@ -258,22 +260,18 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   const signMessage = async (message: string) => {
-    if (!account || !accountType || !walletType) {
+    if (!web3auth) {
       throw new Error("No wallet connected");
     }
 
     try {
-      let signature = "";
-      if (walletType === 'metamask') {
-        signature = await signWithMetamask(account, message);
-      } else if (walletType === 'phantom') {
-        signature = await signWithPhantom(message);
-      } else {
-        // WalletConnect
-        signature = accountType === 'evm'
-          ? await signWithWalletConnectEVM(account, message)
-          : await signWithWalletConnectSolana(message);
+      const provider = await web3auth.connect();
+      if (!provider) {
+        throw new Error("Failed to connect to Web3Auth provider");
       }
+      const ethersProvider = new ethers.BrowserProvider(provider as ethers.Eip1193Provider);
+      const signer = await ethersProvider.getSigner();
+      const signature = await signer.signMessage(message);
       return signature;
     } catch (error) {
       console.error("Error signing message:", error);
@@ -283,20 +281,14 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   };
 
   const linkAccount = async (type: 'evm' | 'solana', wallet: 'phantom' | 'metamask' | 'walletconnect', timestamp: number, newAccount: string) => {
-    if (!account || !accountType || !walletType) {
-      throw new Error("No wallet connected");
+    if (!walletAddress) {
+      throw new Error("No main wallet connected");
     }
 
     try {
-      // Store current wallet state
-      const currentWalletInfo = {
-        account,
-        accountType,
-        walletType
-      };
-
       const newMessage = `MegaYours Account Linker: ${newAccount} at ${timestamp}`;
-      const mainMessage = `MegaYours Account Linker: ${account} at ${timestamp}`;
+      const mainMessage = `MegaYours Account Linker: ${walletAddress} at ${timestamp}`;
+      
       // 1. Get signature from the new wallet first (B)
       let newSignature = "";
       
@@ -314,26 +306,19 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
           : await signWithWalletConnectSolana(newMessage);
       }
 
-      // 2. Reconnect to the main wallet (A)
-      if (currentWalletInfo.walletType === 'metamask') {
-        await connectMetamask();
-      } else if (currentWalletInfo.walletType === 'phantom') {
-        await connectPhantom();
-      }
-
-      // 3. Get signature from the main wallet
+      // 2. Get signature from the main wallet (Web3Auth)
       const mainSignature = await signMessage(mainMessage);
 
       console.log('Linking accounts with signatures:', {
         newWallet: { type, address: newAccount, signature: newSignature },
-        mainWallet: { type: accountType, address: account, signature: mainSignature }
+        mainWallet: { type: 'evm', address: walletAddress, signature: mainSignature }
       });
 
       await submitAccountLinkingRequest([
         {
-          type: accountType,
+          type: 'evm',
           timestamp: timestamp,
-          account: account,
+          account: walletAddress,
           signature: mainSignature
         },
         {

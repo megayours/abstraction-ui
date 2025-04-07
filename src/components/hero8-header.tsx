@@ -5,10 +5,10 @@ import React from 'react'
 import Logo from './logo'
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from './ui/navigation-menu'
 import { cn } from '@/lib/utils'
-import { useWallet } from '@/contexts/WalletContext'
-import { WalletDialog } from './sign-in/WalletDialog'
+import { useWeb3Auth } from '@/providers/web3auth-provider'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
+import { WalletInfo } from './WalletInfo'
 
 type MenuItem = {
     name: string;
@@ -74,9 +74,9 @@ const userSettingsItem: MenuItem = {
 }
 
 const NavigationItem = ({ item }: { item: typeof menuItems[number] }) => {
-    const { account } = useWallet();
+    const { isConnected } = useWeb3Auth();
 
-    if (item.requiresAuth && !account) {
+    if (item.requiresAuth && !isConnected) {
         return null;
     }
 
@@ -121,8 +121,7 @@ const NavigationItem = ({ item }: { item: typeof menuItems[number] }) => {
 
 export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
-    const [walletDialogOpen, setWalletDialogOpen] = React.useState(false);
-    const { account, disconnect } = useWallet();
+    const { isConnected, isLoading, login, logout, walletAddress } = useWeb3Auth();
 
     const closeMenu = React.useCallback(() => {
         setMenuState(false);
@@ -139,7 +138,24 @@ export const HeroHeader = () => {
                         <Logo />
                     </Link>
 
-                    <div className="flex items-center">
+                    <div className="flex items-center gap-4">
+                        {isConnected ? (
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-mono">
+                                    {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
+                                </span>
+                            </div>
+                        ) : (
+                            <Button
+                                variant="outline"
+                                onClick={login}
+                                disabled={isLoading}
+                                className="h-10"
+                            >
+                                {isLoading ? 'Connecting...' : 'Connect Wallet'}
+                            </Button>
+                        )}
+
                         <NavigationMenu className="hidden lg:block">
                             <NavigationMenuList className="flex gap-8">
                                 {menuItems.map((item, index) => (<NavigationItem key={index} item={item} />))}
@@ -147,7 +163,7 @@ export const HeroHeader = () => {
                         </NavigationMenu>
 
                         <div className="hidden lg:block ml-4">
-                            {account ? (
+                            {isConnected ? (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
                                         <Button 
@@ -159,8 +175,8 @@ export const HeroHeader = () => {
                                         </Button>
                                     </DropdownMenuTrigger>
                                     <DropdownMenuContent align="end" className="w-56">
-                                        <DropdownMenuLabel className="font-mono text-sm">
-                                            {account.slice(0, 6)}...{account.slice(-4)}
+                                        <DropdownMenuLabel className="font-normal">
+                                            {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
                                         </DropdownMenuLabel>
                                         <DropdownMenuSeparator />
                                         <DropdownMenuItem asChild>
@@ -170,21 +186,13 @@ export const HeroHeader = () => {
                                             </Link>
                                         </DropdownMenuItem>
                                         <DropdownMenuSeparator />
-                                        <DropdownMenuItem onClick={disconnect} className="text-destructive">
+                                        <DropdownMenuItem onClick={logout} className="text-destructive">
                                             <LogOut className="h-4 w-4 mr-2" />
-                                            Disconnect
+                                            Sign Out
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                            ) : (
-                                <Button
-                                    variant="outline"
-                                    onClick={() => setWalletDialogOpen(true)}
-                                    className="h-10"
-                                >
-                                    Connect Wallet
-                                </Button>
-                            )}
+                            ) : null}
                         </div>
 
                         <button
@@ -212,37 +220,38 @@ export const HeroHeader = () => {
                 "lg:hidden"
             )}>
                 <div className="mb-6">
-                    {account ? (
+                    {isConnected ? (
                         <div className="flex flex-col gap-3">
                             <div className="flex items-center gap-2 p-2 bg-muted/50 rounded-md">
                                 <User className="h-5 w-5" />
-                                <span className="font-mono text-sm">
-                                    {account.slice(0, 6)}...{account.slice(-4)}
+                                <span className="text-sm font-mono">
+                                    {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
                                 </span>
                             </div>
                             <Button 
                                 variant="outline" 
-                                onClick={disconnect}
+                                onClick={logout}
                                 size="sm"
                                 className="text-destructive border-destructive/30 hover:bg-destructive/10 w-full justify-start"
                             >
                                 <LogOut className="h-4 w-4 mr-2" />
-                                Disconnect
+                                Sign Out
                             </Button>
                         </div>
                     ) : (
                         <Button
                             variant="outline"
-                            onClick={() => setWalletDialogOpen(true)}
+                            onClick={login}
+                            disabled={isLoading}
                             className="w-full"
                         >
-                            Connect Wallet
+                            {isLoading ? 'Connecting...' : 'Connect Wallet'}
                         </Button>
                     )}
                 </div>
                 <ul className="space-y-2">
                     {menuItems.map((item, index) => (
-                        (item.requiresAuth && !account) ? null : (
+                        (item.requiresAuth && !isConnected) ? null : (
                             <li key={index}>
                                 <Link
                                     href={item.href}
@@ -255,7 +264,7 @@ export const HeroHeader = () => {
                             </li>
                         )
                     ))}
-                    {account && (
+                    {isConnected && (
                         <li>
                             <Link
                                 href={userSettingsItem.href}
@@ -268,7 +277,6 @@ export const HeroHeader = () => {
                     )}
                 </ul>
             </div>
-            <WalletDialog open={walletDialogOpen} onOpenChange={setWalletDialogOpen} />
         </header>
     )
 }

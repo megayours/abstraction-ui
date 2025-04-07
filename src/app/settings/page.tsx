@@ -3,17 +3,19 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { User, Plus, Unlink } from "lucide-react"
+import { User, Plus, Unlink, Copy, LogOut } from "lucide-react"
 import { AccountLinkingModal } from "@/components/settings/AccountLinkingModal"
 import { useState } from "react"
 import { useWallet } from "@/contexts/WalletContext"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AccountLink } from "@/lib/types"
 import { toast } from "sonner"
+import { useWeb3Auth } from '@/providers/web3auth-provider'
 
 export default function SettingsPage() {
   const [isAccountLinkingOpen, setIsAccountLinkingOpen] = useState(false)
-  const { account, connectedAccounts, unlinkAccount } = useWallet()
+  const { connectedAccounts, unlinkAccount } = useWallet()
+  const { walletAddress, logout } = useWeb3Auth()
 
   const handleUnlink = async (linkedAccount: AccountLink) => {
     try {
@@ -21,6 +23,13 @@ export default function SettingsPage() {
     } catch (error) {
       console.error("Error unlinking account:", error)
       toast.error(`Failed to unlink account: ${error instanceof Error ? error.message : String(error)}`)
+    }
+  }
+
+  const copyAddress = () => {
+    if (walletAddress) {
+      navigator.clipboard.writeText(walletAddress)
+      toast.success('Address copied to clipboard')
     }
   }
 
@@ -52,20 +61,20 @@ export default function SettingsPage() {
                 {/* Main Account */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold">Main Account</h3>
-                  {account ? (
+                  {walletAddress ? (
                     <Alert className="border-2 border-green-100 bg-green-50">
                       <AlertTitle className="text-lg font-semibold text-green-800">
                         Connected
                       </AlertTitle>
                       <AlertDescription className="font-mono text-base break-all text-green-700">
-                        {account}
+                        {walletAddress}
                       </AlertDescription>
                     </Alert>
                   ) : (
                     <Alert variant="destructive">
                       <AlertTitle>Not Connected</AlertTitle>
                       <AlertDescription>
-                        Please connect your main wallet to manage linked accounts.
+                        Please connect your wallet to manage linked accounts.
                       </AlertDescription>
                     </Alert>
                   )}
@@ -149,11 +158,37 @@ export default function SettingsPage() {
           </TabsContent>
         </Tabs>
 
+        <Card>
+          <CardHeader>
+            <CardTitle>Wallet</CardTitle>
+            <CardDescription>Your connected wallet information</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="space-y-1">
+                <p className="text-sm font-medium">Wallet Address</p>
+                <p className="text-sm text-muted-foreground font-mono">
+                  {walletAddress || 'Not connected'}
+                </p>
+              </div>
+              {walletAddress && (
+                <Button variant="outline" size="icon" onClick={copyAddress}>
+                  <Copy className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+            <Button variant="outline" className="w-full" onClick={logout}>
+              <LogOut className="mr-2 h-4 w-4" />
+              Disconnect Wallet
+            </Button>
+          </CardContent>
+        </Card>
+
         <AccountLinkingModal
           open={isAccountLinkingOpen}
           onOpenChange={setIsAccountLinkingOpen}
         />
       </div>
     </section >
-    )
+  )
 }

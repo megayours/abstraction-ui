@@ -13,6 +13,7 @@ import type { Collection, Token, Module } from '@/lib/api/megadata';
 import { config } from '@/lib/config';
 import type { MegaDataItem } from '@/lib/types';
 import { CreateTokenDialog } from '@/components/CreateTokenDialog';
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 
 const EXTENDING_METADATA_MODULE_ID = 'extending_metadata';
 const TOKENS_PAGE_SIZE = 11;
@@ -67,7 +68,7 @@ const generateDefaultValue = (propertySchema: any): any => {
 };
 
 export default function MegaData() {
-  const { account, signMessage, accountType } = useWallet();
+  const { walletAddress } = useWeb3Auth();
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<number | null>(null);
   const [selectedCollectionData, setSelectedCollectionData] = useState<Collection | null>(null);
@@ -84,14 +85,10 @@ export default function MegaData() {
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [collectionModules, setCollectionModules] = useState<Module[]>([]);
   const [mergedSchema, setMergedSchema] = useState<Record<string, any> | null>(null);
-  const [selectedModules, setSelectedModules] = useState<string[]>([]);
   const [tokensToPublish, setTokensToPublish] = useState<Set<string>>(new Set());
-  const [pendingTokenSelection, setPendingTokenSelection] = useState<Token | null>(null);
   const [pendingCollectionSelection, setPendingCollectionSelection] = useState<number | undefined>(undefined);
   const [isCreatingToken, setIsCreatingToken] = useState(false);
   const [isCreateTokenDialogOpen, setIsCreateTokenDialogOpen] = useState(false);
-
-  const loadTokensCallGuard = useRef(false);
 
   const loadCollectionData = useCallback(async (id: number | null) => {
     if (!id) {
@@ -176,9 +173,9 @@ export default function MegaData() {
   }, [selectedCollection, loadTokens]);
 
   const loadCollections = useCallback(async () => {
-    if (!account) return;
+    if (!walletAddress) return;
     try {
-      const fetchedCollections = await megadataApi.getCollections(account);
+      const fetchedCollections = await megadataApi.getCollections();
       setCollections(fetchedCollections);
       if (pendingCollectionSelection !== undefined && fetchedCollections.some(c => c.id === pendingCollectionSelection)) {
         handleCollectionSelect(pendingCollectionSelection);
@@ -187,7 +184,7 @@ export default function MegaData() {
     } catch (error) {
       console.error("Failed to load collections", error);
     }
-  }, [account, pendingCollectionSelection]);
+  }, [walletAddress, pendingCollectionSelection]);
 
   useEffect(() => {
     if (selectedCollection === null) {
@@ -221,10 +218,10 @@ export default function MegaData() {
   }, [selectedCollection]);
 
   useEffect(() => {
-    if (account) {
+    if (walletAddress) {
       loadCollections();
     }
-  }, [account, loadCollections]);
+  }, [walletAddress, loadCollections]);
 
   useEffect(() => {
     if (selectedToken) {
@@ -290,14 +287,14 @@ export default function MegaData() {
     moduleIds: string[],
     defaultData: Record<string, string>
   ) => {
-    if (!account || !signMessage) {
+    if (!walletAddress) {
       console.error('Account/Signer not available');
       alert('Wallet not connected or account/signer not found.');
       return;
     }
     setIsCreatingCollection(true);
     try {
-      const newCollection = await megadataApi.createCollection(name, account, moduleIds);
+      const newCollection = await megadataApi.createCollection(name, moduleIds);
       console.log('Created collection:', newCollection);
 
       if (numTokens > 0 && newCollection.id) {
@@ -319,10 +316,10 @@ export default function MegaData() {
     } finally {
       setIsCreatingCollection(false);
     }
-  }, [account, signMessage, loadCollections]);
+  }, [walletAddress, loadCollections]);
 
   const handleAutoDetectCreateCollection = useCallback(async (name: string, moduleIds: string[], detectedData: DetectedTokenData[]) => {
-    if (!account || !signMessage) {
+    if (!walletAddress) {
       console.error('handleAutoDetectCreateCollection: Account/Signer not available');
       alert('Wallet not connected or account/signer not found.');
       return;
@@ -335,7 +332,7 @@ export default function MegaData() {
     console.log(`Creating collection '${name}' with modules [${moduleIds.join(', ')}] and ${detectedData.length} detected tokens.`);
 
     try {
-      const newCollection = await megadataApi.createCollection(name, account, moduleIds);
+      const newCollection = await megadataApi.createCollection(name, moduleIds);
       console.log('Created collection:', newCollection);
 
       if (!newCollection || !newCollection.id) {
@@ -380,7 +377,7 @@ export default function MegaData() {
     } finally {
       setIsCreatingCollection(false);
     }
-  }, [account, signMessage, loadCollections]);
+  }, [walletAddress, loadCollections]);
 
   const handleTokenClick = useCallback((token: Token) => {
     if (token.id === selectedToken?.id) return;
@@ -417,7 +414,7 @@ export default function MegaData() {
   }, [loadedTokens]);
 
   const handlePublishSelectedTokens = useCallback(async () => {
-    if (!selectedCollection || tokensToPublish.size === 0 || !account || !signMessage) return;
+    if (!selectedCollection || tokensToPublish.size === 0 || !walletAddress) return;
 
     setIsPublishing(true);
     try {
@@ -442,10 +439,10 @@ export default function MegaData() {
     } finally {
       setIsPublishing(false);
     }
-  }, [selectedCollection, account, signMessage, tokensToPublish, loadTokens]);
+  }, [selectedCollection, walletAddress, tokensToPublish, loadTokens]);
 
   const handlePublishAllTokens = useCallback(async () => {
-    if (!selectedCollection || !account || !signMessage) return;
+    if (!selectedCollection || !walletAddress) return;
 
     if (!confirm('Are you sure you want to publish all tokens in this collection? This action cannot be undone.')) {
       return;
@@ -475,10 +472,10 @@ export default function MegaData() {
     } finally {
       setIsPublishing(false);
     }
-  }, [selectedCollection, account, signMessage, selectedToken, loadTokens]);
+  }, [selectedCollection, walletAddress, selectedToken, loadTokens]);
 
   const handleSave = useCallback(async () => {
-    if (!selectedToken || !selectedCollection || !account || !signMessage) return;
+    if (!selectedToken || !selectedCollection || !walletAddress) return;
 
     setIsSaving(true);
     try {
@@ -497,10 +494,10 @@ export default function MegaData() {
     } finally {
       setIsSaving(false);
     }
-  }, [selectedToken, selectedCollection, account, signMessage, editedProperties, loadTokens]);
+  }, [selectedToken, selectedCollection, walletAddress, editedProperties, loadTokens]);
 
   const handleImportData = useCallback(async (items: MegaDataItem[]) => {
-    if (!selectedCollection || !account || !signMessage) return;
+    if (!selectedCollection || !walletAddress) return;
 
     try {
       const tokens = items.map(item => ({
@@ -518,10 +515,10 @@ export default function MegaData() {
       console.error('Failed to import data:', error);
       alert(`Import failed: ${error.message || 'Unknown error'}`);
     }
-  }, [selectedCollection, account, signMessage, loadTokens]);
+  }, [selectedCollection, walletAddress, loadTokens]);
 
   const handleImageUpload = useCallback(async (token: Token, file: File) => {
-    if (!selectedCollection || !account || !signMessage || !token) return;
+    if (!selectedCollection || !walletAddress || !token) return;
 
     try {
       const formData = new FormData();
@@ -551,10 +548,10 @@ export default function MegaData() {
     } catch (error) {
       console.error('Failed to upload image:', error);
     }
-  }, [selectedCollection, account, signMessage]);
+  }, [selectedCollection, walletAddress]);
 
   const handleCreateToken = useCallback(async (tokenId: string) => {
-    if (!selectedCollection || !account || !signMessage) return;
+    if (!selectedCollection || !walletAddress) return;
     setIsCreatingToken(true);
 
     let defaultData: Record<string, any> = {};
@@ -583,14 +580,14 @@ export default function MegaData() {
     } finally {
       setIsCreatingToken(false);
     }
-  }, [selectedCollection, account, signMessage, mergedSchema, loadTokens, totalTokens]);
+  }, [selectedCollection, walletAddress, mergedSchema, loadTokens, totalTokens]);
 
   const handleCreateTokenClick = useCallback(() => {
     setIsCreateTokenDialogOpen(true);
   }, []);
 
   const handleDeleteToken = useCallback(async (tokenId: string) => {
-    if (!selectedCollection || !account || !signMessage || !confirm(`Are you sure you want to delete token ${tokenId}? This cannot be undone.`)) return;
+    if (!selectedCollection || !walletAddress || !confirm(`Are you sure you want to delete token ${tokenId}? This cannot be undone.`)) return;
 
     try {
       await megadataApi.deleteToken(selectedCollection, tokenId);
@@ -608,9 +605,9 @@ export default function MegaData() {
     } catch (error) {
       console.error('Failed to delete token:', error);
     }
-  }, [selectedCollection, account, signMessage, selectedToken, loadTokens]);
+  }, [selectedCollection, walletAddress, selectedToken, loadTokens]);
 
-  if (!account) {
+  if (!walletAddress) {
     return (
       <section className="py-12 md:py-30">
         <div className="mx-auto max-w-5xl px-6">
