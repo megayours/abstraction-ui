@@ -8,7 +8,6 @@ import { cn } from '@/lib/utils'
 import { useWeb3Auth } from '@/providers/web3auth-provider'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
-import { WalletInfo } from './WalletInfo'
 
 type MenuItem = {
     name: string;
@@ -139,23 +138,6 @@ export const HeroHeader = () => {
                     </Link>
 
                     <div className="flex items-center gap-4">
-                        {isConnected ? (
-                            <div className="flex items-center gap-2">
-                                <span className="text-sm font-mono">
-                                    {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
-                                </span>
-                            </div>
-                        ) : (
-                            <Button
-                                variant="outline"
-                                onClick={login}
-                                disabled={isLoading}
-                                className="h-10"
-                            >
-                                {isLoading ? 'Connecting...' : 'Connect Wallet'}
-                            </Button>
-                        )}
-
                         <NavigationMenu className="hidden lg:block">
                             <NavigationMenuList className="flex gap-8">
                                 {menuItems.map((item, index) => (<NavigationItem key={index} item={item} />))}

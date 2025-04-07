@@ -100,20 +100,22 @@ export default function SettingsPage() {
                         >
                           <div className="space-y-1">
                             <p className="font-mono text-sm">
-                              {linkedAccount.account}
+                              {linkedAccount.account.toLowerCase() != walletAddress?.toLowerCase() 
+                              ? linkedAccount.account 
+                              : linkedAccount.link}
                             </p>
                             <p className="text-sm text-muted-foreground">
                               Linked Account #{index + 1}
                             </p>
                           </div>
-                          <Button
+                          {/* <Button
                             variant="ghost"
                             size="icon"
                             onClick={() => handleUnlink(linkedAccount)}
                             className="text-destructive hover:text-destructive/90"
                           >
                             <Unlink className="h-4 w-4" />
-                          </Button>
+                          </Button> */}
                         </div>
                       ))
                     ) : (
@@ -155,33 +157,6 @@ export default function SettingsPage() {
             </Card>
           </TabsContent>
         </Tabs>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Wallet</CardTitle>
-            <CardDescription>Your connected wallet information</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-1">
-                <p className="text-sm font-medium">Wallet Address</p>
-                <p className="text-sm text-muted-foreground font-mono">
-                  {walletAddress || 'Not connected'}
-                </p>
-              </div>
-              {walletAddress && (
-                <Button variant="outline" size="icon" onClick={copyAddress}>
-                  <Copy className="h-4 w-4" />
-                </Button>
-              )}
-            </div>
-            <Button variant="outline" className="w-full" onClick={logout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Disconnect Wallet
-            </Button>
-          </CardContent>
-        </Card>
-
         <AccountLinkingModal
           open={isAccountLinkingOpen}
           onOpenChange={setIsAccountLinkingOpen}

@@ -11,6 +11,7 @@ import WalletConnect from '@/components/logos/wallet-connect';
 import Phantom from '@/components/logos/phantom';
 import Ethereum from '@/components/logos/ethereum';
 import Solana from '@/components/logos/solana';
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 
 interface WalletDialogProps {
   open: boolean;
@@ -18,7 +19,8 @@ interface WalletDialogProps {
 }
 
 export function WalletDialog({ open, onOpenChange }: WalletDialogProps) {
-  const { connect, isConnecting, account, connectedAccounts } = useWallet();
+  const { connect, isConnecting, account } = useWallet();
+  const { connectedAccounts } = useWeb3Auth();
 
   const handleConnect = async (type: 'evm' | 'solana', wallet: 'phantom' | 'metamask' | 'walletconnect') => {
     try {
