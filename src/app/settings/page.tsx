@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { User, Plus, Unlink, Copy, LogOut } from "lucide-react"
 import { AccountLinkingModal } from "@/components/settings/AccountLinkingModal"
 import { useState } from "react"
-import { useWallet } from "@/contexts/WalletContext"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { AccountLink } from "@/lib/types"
 import { toast } from "sonner"
@@ -14,12 +13,11 @@ import { useWeb3Auth } from '@/providers/web3auth-provider'
 
 export default function SettingsPage() {
   const [isAccountLinkingOpen, setIsAccountLinkingOpen] = useState(false)
-  const { connectedAccounts, unlinkAccount } = useWallet()
-  const { walletAddress, logout } = useWeb3Auth()
+  const { walletAddress, logout, connectedAccounts } = useWeb3Auth()
 
   const handleUnlink = async (linkedAccount: AccountLink) => {
     try {
-      await unlinkAccount(linkedAccount)
+      // await unlinkAccount(linkedAccount)
     } catch (error) {
       console.error("Error unlinking account:", error)
       toast.error(`Failed to unlink account: ${error instanceof Error ? error.message : String(error)}`)

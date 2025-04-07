@@ -7,6 +7,8 @@ import { createContext, useContext, useEffect, useState, ReactNode } from 'react
 import { jwtDecode } from 'jwt-decode';
 import { getPublicCompressed } from '@toruslabs/eccrypto';
 import { Web3 } from 'web3';
+import { AccountLink } from '@/lib/types';
+import { fetchAccountLinks } from '@/lib/api/abstraction-chain';
 
 interface Web3AuthContextType {
   web3auth: Web3Auth | null;
@@ -17,6 +19,7 @@ interface Web3AuthContextType {
   token: string | null;
   walletAddress: string | null;
   isLoading: boolean;
+  connectedAccounts: AccountLink[];
 }
 
 const Web3AuthContext = createContext<Web3AuthContextType>({
@@ -28,6 +31,7 @@ const Web3AuthContext = createContext<Web3AuthContextType>({
   token: null,
   walletAddress: null,
   isLoading: true,
+  connectedAccounts: [],
 });
 
 export const useWeb3Auth = () => useContext(Web3AuthContext);
@@ -65,6 +69,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
   const [token, setToken] = useState<string | null>(null);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [connectedAccounts, setConnectedAccounts] = useState<AccountLink[]>([]);
 
   useEffect(() => {
     const init = async () => {
@@ -128,6 +133,16 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
     init();
   }, []);
 
+  // Fetch connected accounts when account changes
+  useEffect(() => {
+    if (walletAddress) {
+      console.log("Fetching connected accounts for:", walletAddress);
+      fetchAccountLinks(walletAddress).then(setConnectedAccounts);
+    } else {
+      setConnectedAccounts([]);
+    }
+  }, [walletAddress]);
+
   const handleAuthentication = async (web3authInstance: Web3Auth, web3authProvider: any) => {
     try {
       // Get the JWT token from Web3Auth
@@ -153,6 +168,9 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
       setToken(userInfo.idToken);
       setWalletAddress(walletAddress);
       localStorage.setItem('token', userInfo.idToken);
+
+      // Fetch connected accounts
+
     } catch (error) {
       console.error('Error during authentication:', error);
       throw error; // Re-throw to handle in the login function
@@ -184,6 +202,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
       setProvider(null);
       setToken(null);
       setWalletAddress(null);
+      localStorage.removeItem('app_pub_key');
       localStorage.removeItem('token');
     } catch (error) {
       console.error('Error logging out:', error);
@@ -201,6 +220,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
         token,
         walletAddress,
         isLoading,
+        connectedAccounts,
       }}
     >
       {children}

@@ -12,10 +12,8 @@ import {
   signWithWalletConnectSolana,
   disconnectWallet
 } from '@/lib/wallets';
-import { fetchAccountLinks, unlinkAccounts } from '@/lib/api/abstraction-chain';
 import { toast } from 'sonner';
 import { submitAccountLinkingRequest } from '@/lib/api/megaforwarder';
-import { AccountLink } from '@/lib/types';
 import { ethers } from 'ethers'; // Import ethers
 import { useWeb3Auth } from '@/providers/web3auth-provider';
 
@@ -25,12 +23,10 @@ interface WalletContextType {
   walletType: 'phantom' | 'metamask' | 'walletconnect' | null;
   provider: ethers.Provider | null; // Added provider state
   isConnecting: boolean;
-  connectedAccounts: AccountLink[];
   connect: (accountType: 'evm' | 'solana', walletType: 'phantom' | 'metamask' | 'walletconnect') => Promise<void>;
   disconnect: () => Promise<void>;
   signMessage: (message: string) => Promise<string>;
   linkAccount: (accountType: 'evm' | 'solana', walletType: 'phantom' | 'metamask' | 'walletconnect', timestamp: number, newAccount: string) => Promise<void>;
-  unlinkAccount: (linkedAccount: AccountLink) => Promise<void>;
 }
 
 const WalletContext = createContext<WalletContextType | undefined>(undefined);
@@ -42,7 +38,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
   const [walletType, setWalletType] = useState<'phantom' | 'metamask' | 'walletconnect' | null>(null);
   const [provider, setProvider] = useState<ethers.Provider | null>(null); // Added provider state
   const [isConnecting, setIsConnecting] = useState(false);
-  const [connectedAccounts, setConnectedAccounts] = useState<AccountLink[]>([]);
 
   // Define disconnect function before effects that depend on it
   const disconnect = useCallback(async () => {
@@ -68,7 +63,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       localStorage.removeItem('walletAccount');
       localStorage.removeItem('walletAccountType');
       localStorage.removeItem('walletType');
-      setConnectedAccounts([]);
       toast.success("Wallet disconnected");
     } catch (error) {
       console.error("Error disconnecting wallet:", error);
@@ -216,16 +210,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     initializeWallet();
   }, []);
 
-  // Fetch connected accounts when account changes
-  useEffect(() => {
-    if (account) {
-      console.log("Fetching connected accounts for:", account);
-      fetchAccountLinks(account).then(setConnectedAccounts);
-    } else {
-      setConnectedAccounts([]);
-    }
-  }, [account]);
-
   const connect = async (type: 'evm' | 'solana', wallet: 'phantom' | 'metamask' | 'walletconnect') => {
     setIsConnecting(true);
     try {
@@ -337,24 +321,6 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const unlinkAccount = async (linkedAccount: AccountLink) => {
-    if (!account) {
-      throw new Error("No wallet connected");
-    }
-
-    try {
-      await unlinkAccounts(account, linkedAccount.account);
-      // Refresh the connected accounts list
-      const updatedAccounts = await fetchAccountLinks(account);
-      setConnectedAccounts(updatedAccounts);
-      toast.success("Account unlinked successfully");
-    } catch (error) {
-      console.error("Error unlinking account:", error);
-      toast.error(`Failed to unlink account: ${error instanceof Error ? error.message : String(error)}`);
-      throw error;
-    }
-  };
-
   return (
     <WalletContext.Provider value={{
       account,
@@ -362,12 +328,10 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
       walletType,
       provider, // Include provider in context value
       isConnecting,
-      connectedAccounts,
       connect,
       disconnect,
       signMessage,
       linkAccount,
-      unlinkAccount
     }}>
       {children}
     </WalletContext.Provider>
