@@ -1,5 +1,5 @@
 import { Button } from '@/components/ui/button';
-import { useWeb3Auth } from '@/contexts/Web3AuthContext';
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 import { toast } from 'sonner';
 
 export function SignInButton() {

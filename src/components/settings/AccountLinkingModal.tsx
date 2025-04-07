@@ -25,7 +25,7 @@ interface AccountLinkingModalProps {
 }
 
 export function AccountLinkingModal({ open, onOpenChange }: AccountLinkingModalProps) {
-    const { accountType, walletType, linkAccount } = useWallet()
+    const { linkAccount } = useWallet()
     const { walletAddress } = useWeb3Auth()
     const [newAccountType, setNewAccountType] = useState<"evm" | "solana">("evm")
     const [newWalletType, setNewWalletType] = useState<"phantom" | "metamask" | "walletconnect">("metamask")
@@ -256,4 +256,4 @@ export function AccountLinkingModal({ open, onOpenChange }: AccountLinkingModalP
             </DialogContent>
         </Dialog>
     )
-} 
+}

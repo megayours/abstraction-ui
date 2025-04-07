@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils'
 import { useWeb3Auth } from '@/providers/web3auth-provider'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
+import { SignInButton } from './auth/SignInButton'
 
 type MenuItem = {
     name: string;
@@ -174,7 +175,7 @@ export const HeroHeader = () => {
                                         </DropdownMenuItem>
                                     </DropdownMenuContent>
                                 </DropdownMenu>
-                            ) : null}
+                            ) : <SignInButton />}
                         </div>
 
                         <button

@@ -20,6 +20,7 @@ interface Web3AuthContextType {
   walletAddress: string | null;
   isLoading: boolean;
   connectedAccounts: AccountLink[];
+  signMessage: (message: string) => Promise<string>;
 }
 
 const Web3AuthContext = createContext<Web3AuthContextType>({
@@ -32,6 +33,7 @@ const Web3AuthContext = createContext<Web3AuthContextType>({
   walletAddress: null,
   isLoading: true,
   connectedAccounts: [],
+  signMessage: async () => { throw new Error('Not initialized'); },
 });
 
 export const useWeb3Auth = () => useContext(Web3AuthContext);
@@ -209,6 +211,14 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
     }
   };
 
+  const signMessage = async (message: string) => {
+    if (!provider) throw new Error('No provider available');
+    const web3 = new Web3(provider);
+    const accounts = await web3.eth.getAccounts();
+    const signature = await web3.eth.personal.sign(message, accounts[0], '');
+    return signature;
+  };
+
   return (
     <Web3AuthContext.Provider
       value={{
@@ -221,6 +231,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
         walletAddress,
         isLoading,
         connectedAccounts,
+        signMessage,
       }}
     >
       {children}
