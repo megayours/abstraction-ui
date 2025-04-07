@@ -21,14 +21,14 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 interface AssetRegistrationModalProps {
   isOpen: boolean;
   onClose: () => void;
 }
 
 export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationModalProps) {
-  const { account, accountType, signMessage } = useWallet();
+  const { walletAddress, signMessage } = useWeb3Auth();
   const [availableSources, setAvailableSources] = useState<string[]>([]);
   const [formData, setFormData] = useState({
     contract: '',
@@ -61,7 +61,7 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!account || !accountType || !signMessage) {
+    if (!walletAddress || !signMessage) {
       toast.error("Please connect your wallet first");
       return;
     }
@@ -70,12 +70,12 @@ export function AssetRegistrationModal({ isOpen, onClose }: AssetRegistrationMod
 
     try {
       const timestamp = Date.now();
-      const message = createMessage(account, timestamp);
+      const message = createMessage(walletAddress, timestamp);
       const signature = await signMessage(message);
       const signatureData: SignatureData = {
-        type: accountType,
+        type: 'evm', // TODO: Add support for other chains
         timestamp,
-        account,
+        account: walletAddress,
         signature
       };
 

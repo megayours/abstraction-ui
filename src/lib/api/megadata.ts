@@ -282,3 +282,32 @@ export const createTokensBulk = async (
   }
   return response.json();
 };
+
+export const uploadImage = async (image: File): Promise<{ hash: string }> => {
+  // Convert File to Base64
+  const arrayBuffer = await image.arrayBuffer();
+  const base64File = bufferToBase64(arrayBuffer);
+  const response = await fetch(`${API_URL}/megahub/upload-file`, {
+    method: 'POST',
+    headers: addAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify({
+      file: base64File,
+      contentType: image.type,
+    }),
+  });
+  if (!response.ok) {
+    throw new Error('Failed to upload image');
+  }
+  return response.json();
+};
+
+// Function to convert ArrayBuffer to Base64
+const bufferToBase64 = (buffer: ArrayBuffer): string => {
+  let binary = '';
+  const bytes = new Uint8Array(buffer);
+  const len = bytes.byteLength;
+  for (let i = 0; i < len; i++) {
+    binary += String.fromCharCode(bytes[i]);
+  }
+  return btoa(binary);
+};

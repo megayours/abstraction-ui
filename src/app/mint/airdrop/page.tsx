@@ -10,6 +10,7 @@ import { useWallet } from '@/contexts/WalletContext'
 import { fetchAssetGroups } from '@/lib/api/abstraction-chain'
 import { getCollections } from '@/lib/api/abstraction-chain'
 import type { AssetGroup, MegaDataCollection } from '@/lib/types'
+import { useWeb3Auth } from '@/providers/web3auth-provider'
 
 type Step = {
   id: number
@@ -36,7 +37,7 @@ const steps: Step[] = [
 
 export default function AirdropWizard() {
   const router = useRouter()
-  const { account } = useWallet()
+  const { walletAddress } = useWeb3Auth()
   const [currentStep, setCurrentStep] = React.useState(1)
   const [selectedCollection, setSelectedCollection] = React.useState<string>('')
   const [selectedQuery, setSelectedQuery] = React.useState<string>('')
@@ -46,13 +47,13 @@ export default function AirdropWizard() {
 
   React.useEffect(() => {
     const fetchData = async () => {
-      if (!account) return
+      if (!walletAddress) return
       
       try {
         setIsLoading(true)
         const [collectionsData, assetGroupsData] = await Promise.all([
-          getCollections(account),
-          fetchAssetGroups(account)
+          getCollections(walletAddress),
+          fetchAssetGroups(walletAddress)
         ])
         setCollections(collectionsData)
         setAssetGroups(assetGroupsData)
@@ -64,9 +65,9 @@ export default function AirdropWizard() {
     }
 
     fetchData()
-  }, [account])
+  }, [walletAddress])
 
-  if (!account) {
+  if (!walletAddress) {
     return (
       <div className="container mx-auto px-4 py-8">
         <Card className="p-6 text-center">

@@ -16,9 +16,10 @@ import { Loader2 } from 'lucide-react';
 import { SaveQueryDialog } from './components/SaveQueryDialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toHexBuffer } from '@/lib/util';
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 
 export default function QueryPage() {
-  const { account } = useWallet();
+  const { walletAddress } = useWeb3Auth();
   // Main states
   const [filters, setFilters] = useState<AssetFilter[]>([]);
   const [results, setResults] = useState<string[][]>([]);
@@ -32,17 +33,17 @@ export default function QueryPage() {
   // Load saved queries on mount
   useEffect(() => {
     const loadSavedQueries = async () => {
-      if (!account) return;
+      if (!walletAddress) return;
 
       try {
-        const queries = await fetchAssetGroups(account);
+        const queries = await fetchAssetGroups(walletAddress);
         setSavedQueries(queries);
       } catch (error) {
         console.error('Failed to load saved queries:', error);
       }
     };
     loadSavedQueries();
-  }, [account]);
+  }, [walletAddress]);
 
   const handleAddFilter = async (filter: AssetFilter): Promise<void> => {
     setFilters(prevFilters => [...prevFilters, filter]);
@@ -98,7 +99,7 @@ export default function QueryPage() {
     }
   };
 
-  if (!account) {
+  if (!walletAddress) {
     return (
       <section className="container py-12">
         <div className="mx-auto max-w-5xl">
@@ -134,7 +135,7 @@ export default function QueryPage() {
                         existingId={selectedQueryId || undefined}
                         existingName={savedQueries.find(q => q.id === selectedQueryId)?.name}
                         onSave={() => {
-                          fetchAssetGroups(account).then(setSavedQueries);
+                          fetchAssetGroups(walletAddress).then(setSavedQueries);
                         }} 
                       />
                       <Button

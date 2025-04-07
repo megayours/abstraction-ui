@@ -11,10 +11,9 @@ import { Loader2 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"; // Import Progress component
 import * as megadataApi from '@/lib/api/megadata';
 import type { Module } from '@/lib/api/megadata';
-import { useWallet } from '@/contexts/WalletContext'; // Import wallet context
 import { ethers } from 'ethers'; // Import ethers
 import { fetchErc721UrisViaEnumeration, DetectedTokenData, FetchProgressCallback } from '@/lib/blockchain/nftUtils'; // Import the new utility
-
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 // Define the structure for the props, adding the new callback
 interface CreateCollectionWizardProps {
   isOpen: boolean;
@@ -42,7 +41,7 @@ export default function CreateCollectionWizard({
   onAutoDetectCreate, // Use the new prop
   isCreating
 }: CreateCollectionWizardProps) {
-  const { provider } = useWallet(); // Get provider from wallet context
+  const { provider } = useWeb3Auth(); // Get provider from wallet context
 
   const [currentStep, setCurrentStep] = useState(STEPS.NAME);
   const [name, setName] = useState('');

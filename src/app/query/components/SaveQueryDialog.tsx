@@ -4,9 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AssetFilter } from '@/lib/types';
 import { manageQuery } from '@/lib/api/megaforwarder';
-import { useWallet } from '@/contexts/WalletContext';
 import { toast } from "sonner";
 import { Save } from 'lucide-react';
+import { useWeb3Auth } from '@/providers/web3auth-provider';
 
 interface SaveQueryDialogProps {
   filters: AssetFilter[];
@@ -18,7 +18,7 @@ interface SaveQueryDialogProps {
 export function SaveQueryDialog({ filters, existingId, existingName, onSave }: SaveQueryDialogProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [name, setName] = useState('');
-  const { account, signMessage, accountType } = useWallet();
+  const { walletAddress, signMessage } = useWeb3Auth();
 
   // Reset name when dialog closes (only needed for new queries)
   useEffect(() => {
@@ -32,7 +32,7 @@ export function SaveQueryDialog({ filters, existingId, existingName, onSave }: S
   }
 
   const handleSave = async () => {
-    if (!account || !signMessage || !accountType) {
+    if (!walletAddress || !signMessage) {
       toast.error('Please connect your wallet first');
       return;
     }
@@ -44,14 +44,14 @@ export function SaveQueryDialog({ filters, existingId, existingName, onSave }: S
 
     try {
       const timestamp = Date.now();
-      const message = createMessage(account, timestamp);
+      const message = createMessage(walletAddress, timestamp);
       const signature = await signMessage(message);
 
       await manageQuery({
         auth: {
-          type: accountType,
+          type: 'evm', // TODO: Add support for other chains
           timestamp,
-          account,
+          account: walletAddress,
           signature
         },
         name: existingId ? existingName! : name,
