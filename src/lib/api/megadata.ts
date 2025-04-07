@@ -238,13 +238,16 @@ export async function validateModuleData(moduleId: string, data: Record<string, 
 }
 
 // Publish specific tokens within a collection
-export const publishTokens = async (collectionId: number, tokenIds: string[]): Promise<{ success: boolean }> => {
+export const publishTokens = async (collectionId: number, tokenIds: string[], publishAll: boolean = false): Promise<{ success: boolean }> => {
   const response = await fetch(`${API_URL}/megadata/collections/${collectionId}/publish`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(tokenIds),
+    body: JSON.stringify({
+      token_ids: tokenIds,
+      all: publishAll
+    }),
   });
 
   if (!response.ok) {
@@ -252,10 +255,8 @@ export const publishTokens = async (collectionId: number, tokenIds: string[]): P
     throw new Error(errorData.error || 'Failed to publish tokens');
   }
 
-  // Assuming the API returns a success status or similar
-  // Adjust based on actual API response if needed
   return { success: true }; 
-}; 
+};
 
 // New function for bulk token creation
 export const createTokensBulk = async (

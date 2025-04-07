@@ -444,6 +444,39 @@ export default function MegaData() {
     }
   }, [selectedCollection, account, signMessage, tokensToPublish, loadTokens]);
 
+  const handlePublishAllTokens = useCallback(async () => {
+    if (!selectedCollection || !account || !signMessage) return;
+
+    if (!confirm('Are you sure you want to publish all tokens in this collection? This action cannot be undone.')) {
+      return;
+    }
+
+    setIsPublishing(true);
+    try {
+      await megadataApi.publishTokens(selectedCollection, [], true);
+
+      // Update all tokens to published state
+      setLoadedTokens(prevTokens => prevTokens.map(token => ({ ...token, is_published: true })));
+      setTokensToPublish(new Set());
+      if (selectedToken) {
+        setSelectedToken(prev => prev ? { ...prev, is_published: true } : null);
+        setHasUnsavedChanges(false);
+        setEditedProperties({});
+      }
+
+      await loadTokens(selectedCollection, 1);
+      await loadCollections();
+
+      console.log('Successfully published all tokens');
+
+    } catch (error: any) {
+      console.error('Failed to publish all tokens:', error);
+      alert(`Publishing failed: ${error.message || 'Unknown error'}`);
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [selectedCollection, account, signMessage, selectedToken, loadTokens]);
+
   const handleSave = useCallback(async () => {
     if (!selectedToken || !selectedCollection || !account || !signMessage) return;
 
@@ -621,13 +654,23 @@ export default function MegaData() {
               New Collection
             </Button>
             {selectedCollection && (
-              <Button
-                onClick={handlePublishSelectedTokens}
-                className="shrink-0"
-                disabled={tokensToPublish.size === 0 || isPublishing}
-              >
-                {isPublishing ? 'Publishing...' : `Publish Selected (${tokensToPublish.size})`}
-              </Button>
+              <>
+                <Button
+                  onClick={handlePublishSelectedTokens}
+                  className="shrink-0"
+                  disabled={tokensToPublish.size === 0 || isPublishing}
+                >
+                  {isPublishing ? 'Publishing...' : `Publish Selected (${tokensToPublish.size})`}
+                </Button>
+                <Button
+                  onClick={handlePublishAllTokens}
+                  className="shrink-0"
+                  variant="secondary"
+                  disabled={isPublishing}
+                >
+                  {isPublishing ? 'Publishing...' : 'Publish All'}
+                </Button>
+              </>
             )}
           </div>
 
