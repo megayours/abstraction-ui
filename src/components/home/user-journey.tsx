@@ -91,15 +91,15 @@ export default function UserJourney() {
     <section id="user-journey" ref={containerRef} className="pt-0 pb-6 md:pt-0 md:pb-12 lg:py-0 bg-background relative">
       <div className="container mx-auto px-4">
         <div className="text-center mb-4 md:mb-8">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif mb-2 md:mb-4">Your Journey Starts Here</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif mb-2 md:mb-4">Launching MegaTokens</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
-            Follow these steps to create your own programmable tokens with on-chain metadata
+            Launching your own MegaToken is easy. Follow these steps to create your own programmable tokens with on-chain metadata
           </p>
         </div>
 
         <div className="max-w-4xl mx-auto space-y-4 md:space-y-8 relative">
           {/* Split Indicator */}
-          <div className="flex flex-col items-center gap-2 md:gap-4">
+          <div className="flex flex-col items-center gap-2 md:gap-4 pt-8">
             <div className="flex items-center gap-2 text-muted-foreground">
               <Split className="w-4 h-4 md:w-5 md:h-5" />
               <span className="text-xs md:text-sm">Choose your path</span>
@@ -117,7 +117,7 @@ export default function UserJourney() {
                 description="Create your own Dynamic Token Collection using MegaData via our MegaRouter Token URI gateway."
                 icon={Boxes}
                 delay={0.2}
-                href="/dynamic-tokens/create"
+                href="/megatokens/create"
               />
               <AnimatedArrow delay={0.7} />
             </div>
@@ -131,7 +131,7 @@ export default function UserJourney() {
                 description="Extend an existing Dynamic Token Collection using MegaData via our MegaRouter Token URI gateway."
                 icon={Gift}
                 delay={0.2}
-                href="/dynamic-tokens/extend"
+                href="/megatokens/extend"
               />
               <AnimatedArrow delay={0.7} />
             </div>

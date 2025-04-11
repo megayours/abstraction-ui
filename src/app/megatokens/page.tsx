@@ -17,7 +17,7 @@ export default function DynamicNFTsPage() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-          <Link href="/dynamic-tokens/view" passHref>
+          <Link href="/megatokens/view" passHref>
             <Card className="group hover:shadow-xl transition-all duration-300 ease-in-out h-full flex flex-col border-border/50 bg-card/90 backdrop-blur-sm overflow-hidden transform hover:-translate-y-1">
               <CardHeader className="items-center text-center p-6">
                 <Eye className="w-12 h-12 mb-4 text-primary group-hover:text-accent-foreground transition-colors duration-300" />
@@ -32,7 +32,7 @@ export default function DynamicNFTsPage() {
             </Card>
           </Link>
 
-          <Link href="/dynamic-tokens/create" passHref>
+          <Link href="/megatokens/create" passHref>
             <Card className="group hover:shadow-xl transition-all duration-300 ease-in-out h-full flex flex-col border-border/50 bg-card/90 backdrop-blur-sm overflow-hidden transform hover:-translate-y-1">
               <CardHeader className="items-center text-center p-6">
                 <PlusCircle className="w-12 h-12 mb-4 text-primary group-hover:text-accent-foreground transition-colors duration-300" />
@@ -47,7 +47,7 @@ export default function DynamicNFTsPage() {
             </Card>
           </Link>
 
-          <Link href="/dynamic-tokens/extend" passHref>
+          <Link href="/megatokens/extend" passHref>
             <Card className="group hover:shadow-xl transition-all duration-300 ease-in-out h-full flex flex-col border-border/50 bg-card/90 backdrop-blur-sm overflow-hidden transform hover:-translate-y-1">
               <CardHeader className="items-center text-center p-6">
                 <GitBranchPlus className="w-12 h-12 mb-4 text-primary group-hover:text-accent-foreground transition-colors duration-300" />

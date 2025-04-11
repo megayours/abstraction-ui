@@ -5,22 +5,14 @@ import { Button } from '@/components/ui/button'
 import Image from 'next/image'
 import { InfiniteSlider } from './ui/infinite-slider'
 import { ProgressiveBlur } from './ui/progressive-blur'
-import { links } from '@/lib/links'
 import Ethereum from './logos/ethereum'
 import Solana from './logos/solana'
 import BNB from './logos/bnb'
-import { motion, useScroll, useTransform } from 'framer-motion'
+import { motion } from 'framer-motion'
+import Polygon from './logos/polygon'
 
 export default function HeroSection() {
     const ref = useRef(null)
-    const { scrollYProgress } = useScroll({
-        target: ref,
-        offset: ["start start", "end start"]
-    })
-
-    const scale = useTransform(scrollYProgress, [0, 1], [1, 0.5])
-    const opacity = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [1, 1, 1, 0])
-    const blur = useTransform(scrollYProgress, [0, 0.3, 0.7, 1], [0, 0, 0, 20])
 
     const chains = [
         {
@@ -37,6 +29,11 @@ export default function HeroSection() {
             name: 'BNB Smart Chain',
             logo: BNB,
             href: 'https://bscscan.com/'
+        },
+        {
+            name: 'Polygon',
+            logo: Polygon,
+            href: 'https://polygon.technology/'
         }
     ];
 
@@ -64,14 +61,8 @@ export default function HeroSection() {
                                         asChild
                                         size="lg"
                                         className="px-5 text-base"
-                                        onClick={(e) => {
-                                            e.preventDefault();
-                                            document.getElementById('user-journey')?.scrollIntoView({
-                                                behavior: 'smooth',
-                                                block: 'start'
-                                            });
-                                        }}>
-                                        <Link href="#user-journey">
+                                    >
+                                        <Link href="/megatokens">
                                             <span className="text-nowrap">Launch Tokens</span>
                                         </Link>
                                     </Button>

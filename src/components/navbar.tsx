@@ -22,10 +22,10 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
     {
-        name: 'Dynamic Tokens',
-        href: '/dynamic-tokens',
+        name: 'MegaTokens',
+        href: '/megatokens',
         icon: Layers,
-        description: 'View, create, or extend Dynamic Tokens.',
+        description: 'View, create, or extend MegaTokens.',
         requiresAuth: true,
     },
     // {

@@ -213,7 +213,7 @@ export default function ViewCollectionsPage() {
             <p className="text-lg text-muted-foreground">{emptyStateMessage}</p>
             {filter !== 'external' && (
               <Button asChild variant="link" className="mt-4 text-primary">
-                <Link href="/dynamic-tokens/create">Create a Collection</Link>
+                <Link href="/megatokens/create">Create a Collection</Link>
               </Button>
             )}
             {filter === 'external' && (
