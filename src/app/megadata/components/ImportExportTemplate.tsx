@@ -12,9 +12,10 @@ interface ImportExportTemplateProps {
   items: MegaDataItem[];
   published: boolean;
   collectionId: string;
+  allowImport?: boolean;
 }
 
-export default function ImportExportTemplate({ onImport, items, collectionId, published }: ImportExportTemplateProps) {
+export default function ImportExportTemplate({ onImport, items, collectionId, published, allowImport = true }: ImportExportTemplateProps) {
   const [isImporting, setIsImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,11 +61,12 @@ export default function ImportExportTemplate({ onImport, items, collectionId, pu
     const exportData = exportLocalData();
     const items = exportData.items[collectionId] || [];
     
-    // Create a simplified array with just tokenId and megadata
+    // Create a simplified array with just tokenId and megadata (using item.data)
     const simplifiedItems = items.map(item => ({
       tokenId: item.tokenId,
       megadata: {
-        erc721: item.properties.erc721
+        // Access data, not properties
+        erc721: item.data?.erc721 
       }
     }));
     
@@ -126,16 +128,8 @@ export default function ImportExportTemplate({ onImport, items, collectionId, pu
   };
 
   return (
-    <Card className="mb-6">
-      <CardHeader>
-        <CardTitle>Import/Export Metadata</CardTitle>
-        <CardDescription>
-          {items.length > 0 
-            ? "Download your current metadata to modify it offline, or import a modified version."
-            : "Download a template to prepare your metadata offline, or import prepared metadata."}
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex gap-4">
+    <div>
+      <div className="flex gap-4 justify-center">
         <Button
           variant="outline"
           onClick={items.length > 0 ? downloadCurrentData : downloadTemplate}
@@ -150,7 +144,7 @@ export default function ImportExportTemplate({ onImport, items, collectionId, pu
               type="file"
               accept=".json"
               onChange={handleFileImport}
-              disabled={isImporting}
+              disabled={isImporting || !allowImport}
               className="hidden"
             id="metadata-import"
           />
@@ -158,19 +152,20 @@ export default function ImportExportTemplate({ onImport, items, collectionId, pu
             variant="outline"
             onClick={() => document.getElementById('metadata-import')?.click()}
             className="flex items-center gap-2"
-            disabled={isImporting}
+            disabled={isImporting || !allowImport}
+            title={!allowImport ? "Cannot import tokens into external collections" : undefined}
           >
             <Upload className="h-4 w-4" />
             {isImporting ? 'Importing...' : 'Import JSON'}
           </Button>
         </div>
         )}
-      </CardContent>
+      </div>
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded text-red-600 text-sm">
           {error}
         </div>
       )}
-    </Card>
+    </div>
   );
 } 

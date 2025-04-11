@@ -1,0 +1,39 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Style Guidelines
+
+These are guidelines for styling UI components that you MUST adhere to!
+
+## References
+
+- https://thirdweb.com/
+- https://halliday.xyz/
+
+## Goals
+- Ensure more legitimacy for our company
+- Clearly deliver our value proposition
+- Simply and clearly define and classify all our “products”
+- Showcase the products and let people try
+
+## Style
+- Very minimal style (not too much info, text, images or any other design element)
+- Light palette (possibly consistent with pitch deck colors with light blue and white)
+  - Primary
+    - White: #f0F4F8
+    - Tuorquoise bay: #2A4A59
+    - Black: #131516
+    - Sand: #C7B29A
+    - Olive Grove Accent: #6E7C4C
+  - Secondary
+    - Blue Sea: #0B2B59
+    - Olive Grove: #333417
+    - Mediterranean Sky: #AAC4E7
+    - Sand: #C7B29A
+    - Yellow Lemon: #E9D973
+    - Sand Light: #F8F1DB
+    - Terracota Accent: #E36F5B
+    - Terracota: #51282D
+- Use shadcn for components and style them

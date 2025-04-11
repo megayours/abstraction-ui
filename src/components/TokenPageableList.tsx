@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageableList } from './PageableList';
 import { Button } from './ui/button';
-import { Upload, Plus, CheckSquare } from 'lucide-react';
+import { Plus, CheckSquare } from 'lucide-react';
 import type { Token } from '@/lib/api/megadata';
 
 interface TokenPageableListProps {
@@ -17,6 +17,7 @@ interface TokenPageableListProps {
   tokensToPublish?: Set<string>;
   onTogglePublishSelection?: (tokenId: string) => void;
   onCreateToken?: () => void;
+  allowTokenCreation?: boolean;
   className?: string;
 }
 
@@ -29,18 +30,12 @@ export function TokenPageableList({
   selectedToken,
   onTokenClick,
   onPageChange,
-  onImageUpload,
   tokensToPublish = new Set(),
   onTogglePublishSelection,
   onCreateToken,
+  allowTokenCreation = true,
   className = '',
 }: TokenPageableListProps) {
-  const handleImageUpload = async (token: Token, event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file || !onImageUpload) return;
-    await onImageUpload(token, file);
-  };
-
   const handleSelectAll = () => {
     if (!onTogglePublishSelection) return;
     
@@ -82,30 +77,7 @@ export function TokenPageableList({
           </div>
         </div>
 
-        <div className="flex items-center gap-1 ml-2">
-          {onImageUpload && (
-            <div onClick={e => e.stopPropagation()}>
-              <input
-                type="file"
-                id={`image-upload-${token.id}`}
-                className="hidden"
-                accept="image/*"
-                onChange={(e) => handleImageUpload(token, e)}
-              />
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-7 w-7"
-                asChild
-              >
-                <label htmlFor={`image-upload-${token.id}`}>
-                  <Upload className="h-4 w-4" />
-                  <span className="sr-only">Upload image</span>
-                </label>
-              </Button>
-            </div>
-          )}
-          
+        <div className="flex items-center gap-1 ml-2">          
           {isPublishable && (
             <input
               type="checkbox"
@@ -140,6 +112,8 @@ export function TokenPageableList({
             size="sm"
             onClick={onCreateToken}
             className="h-7"
+            disabled={!allowTokenCreation}
+            title={!allowTokenCreation ? "Cannot create tokens for external collections" : undefined}
           >
             <Plus className="h-4 w-4 mr-1.5" />
             Create New

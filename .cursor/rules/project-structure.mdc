@@ -1,0 +1,30 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Project Structure
+
+## Technologies
+- Bun
+- Next.js 15
+- React 19
+- TypeScript
+- Tailwind 4
+- Shadcn
+- Web3Auth
+- Web3
+- Wagmi
+
+## Rules
+
+- Prefer types over interfaces
+- When building UI, always defautl to Shadcn components
+
+## External APIs
+External APIs are integrated in the folder `lib/api/**`.
+
+You may find accompanied API documentation in the folder `docs/*.json` e.g:
+- `lib/api/megadata.ts` => `docs/megadata.json`
+
+If an API documentation exists, always refer and adhere to that one when writing the code for using the API, incl. the types.

@@ -32,11 +32,10 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
 
     switch (fieldSchema.type) {
       case 'string':
-        // Use Textarea for longer descriptions or specific formats
         const useTextarea = fieldSchema.format === 'textarea' || field.toLowerCase().includes('description');
         return (
-          <div key={field} className="mb-6"> {/* Increased margin bottom */}
-            <Label htmlFor={id} className="mb-2 block"> {/* Added margin bottom to label */}
+          <div key={field} className="mb-6">
+            <Label htmlFor={id} className="mb-2 block text-base font-medium text-primary">
               {label}
               {isRequired && <span className="text-red-500 ml-1">*</span>}
             </Label>
@@ -48,20 +47,21 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
                 readOnly={readOnly}
                 placeholder={fieldSchema.description || `Enter ${label}`}
                 rows={3}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
               />
             ) : (
               <Input
                 id={id}
-                type={fieldSchema.format === 'url' ? 'url' : 'text'} // Handle URL type
+                type={fieldSchema.format === 'url' ? 'url' : 'text'}
                 value={value[field] || ''}
                 onChange={(e) => handleChange(field, e.target.value)}
                 readOnly={readOnly}
                 placeholder={fieldSchema.description || `Enter ${label}`}
+                className="bg-background/50 border-border/50 focus:border-primary/50"
               />
             )}
-            {/* Optional: Add description text below field */}
             {fieldSchema.description && !fieldSchema.placeholder && (
-               <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
+              <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
             )}
           </div>
         );
@@ -69,38 +69,40 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
       case 'integer':
         return (
           <div key={field} className="mb-6">
-            <Label htmlFor={id} className="mb-2 block">
+            <Label htmlFor={id} className="mb-2 block text-base font-medium text-primary">
               {label}
               {isRequired && <span className="text-red-500 ml-1">*</span>}
             </Label>
             <Input
               id={id}
               type="number"
-              value={value[field] || ''} // Keep as string for input control, conversion happens on save/validation
+              value={value[field] || ''}
               onChange={(e) => handleChange(field, e.target.value === '' ? undefined : Number(e.target.value))}
               readOnly={readOnly}
               placeholder={fieldSchema.description || `Enter ${label}`}
+              className="bg-background/50 border-border/50 focus:border-primary/50"
             />
             {fieldSchema.description && !fieldSchema.placeholder && (
-               <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
+              <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
             )}
           </div>
         );
       case 'boolean':
         return (
           <div key={field} className="flex items-center space-x-2 mb-6">
-             <Checkbox 
-                id={id}
-                checked={!!value[field]}
-                onCheckedChange={(checked) => handleChange(field, checked)}
-                disabled={readOnly}
-              />
-            <Label htmlFor={id}>
+            <Checkbox 
+              id={id}
+              checked={!!value[field]}
+              onCheckedChange={(checked) => handleChange(field, checked)}
+              disabled={readOnly}
+              className="border-border/50 data-[state=checked]:bg-primary data-[state=checked]:border-primary"
+            />
+            <Label htmlFor={id} className="text-base font-medium text-primary">
               {label}
               {isRequired && <span className="text-red-500 ml-1">*</span>}
             </Label>
-             {fieldSchema.description && (
-               <p className="text-sm text-muted-foreground">({fieldSchema.description})</p>
+            {fieldSchema.description && (
+              <p className="text-sm text-muted-foreground">({fieldSchema.description})</p>
             )}
           </div>
         );
@@ -110,15 +112,20 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
           const itemSchema = fieldSchema.items;
           return (
             <div key={field} className="mb-6">
-              <Label className="mb-2 block font-medium">{label}</Label>
+              <Label className="mb-2 block text-base font-medium text-primary">{label}</Label>
               {fieldSchema.description && (
                 <p className="text-sm text-muted-foreground mb-3">{fieldSchema.description}</p>
               )}
               <div className="space-y-4">
                 {items.map((item: any, index: number) => (
-                  <Card key={index} className="bg-muted/50">
-                    <CardContent className="pt-6"> {/* Add padding top */}
-                       <div className="space-y-4"> {/* Inner spacing for fields */}
+                  <Card key={index} className="bg-background/50 border-border/50 shadow-sm">
+                    <CardHeader className="border-b border-border/50 py-3 px-4">
+                      <CardTitle className="text-sm font-medium text-primary">
+                        {itemSchema.title || field} #{index + 1}
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4">
+                      <div className="space-y-4">
                         {Object.keys(itemSchema.properties).map((itemField) => (
                           renderField(`${field}[${index}].${itemField}`, itemSchema.properties[itemField])
                         ))}
@@ -127,7 +134,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="mt-4 text-destructive hover:text-destructive hover:bg-destructive/10" // Destructive styling
+                          className="mt-4 text-destructive hover:text-destructive hover:bg-destructive/10"
                           onClick={() => {
                             const newItems = [...items];
                             newItems.splice(index, 1);
@@ -144,17 +151,15 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
               {!readOnly && (
                 <Button
                   variant="outline"
-                  className="mt-4"
+                  className="mt-4 border-primary/50 text-primary hover:bg-primary/5"
                   onClick={() => {
                     const newItem: Record<string, any> = {};
-                    // Initialize new item with default values based on itemSchema
                     Object.keys(itemSchema.properties).forEach(prop => {
-                        // Basic default initialization, could be expanded
-                        newItem[prop] = itemSchema.properties[prop].default !== undefined 
-                          ? itemSchema.properties[prop].default 
-                          : itemSchema.properties[prop].type === 'array' ? [] 
-                          : itemSchema.properties[prop].type === 'boolean' ? false
-                          : ''; 
+                      newItem[prop] = itemSchema.properties[prop].default !== undefined 
+                        ? itemSchema.properties[prop].default 
+                        : itemSchema.properties[prop].type === 'array' ? [] 
+                        : itemSchema.properties[prop].type === 'boolean' ? false
+                        : ''; 
                     });
                     handleChange(field, [...items, newItem]);
                   }}
@@ -166,24 +171,22 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
             </div>
           );
         }
-        // Handle arrays of simple types (string, number) if needed
         return null;
         
-       case 'object': // Handle nested objects if needed directly
-         // You might render nested fields recursively or within a Card
-         return (
-           <div key={field} className="mb-6 p-4 border rounded-md bg-muted/50">
-              <Label className="mb-3 block font-medium">{label}</Label>
-              {fieldSchema.description && (
-                <p className="text-sm text-muted-foreground mb-3">{fieldSchema.description}</p>
-              )}
-              <div className="space-y-4"> {/* Inner spacing for fields */}
-                 {Object.keys(fieldSchema.properties).map((nestedField) => (
-                    renderField(`${field}.${nestedField}`, fieldSchema.properties[nestedField])
-                 ))}
-              </div>
-           </div>
-         );
+      case 'object':
+        return (
+          <div key={field} className="mb-6 p-4 border rounded-md bg-muted/50 border-border/50">
+            <Label htmlFor={id + "-group"} className="mb-3 block text-base font-medium text-primary">{label}</Label>
+            {fieldSchema.description && (
+              <p className="text-sm text-muted-foreground mb-3">{fieldSchema.description}</p>
+            )}
+            <div id={id + "-group"} className="space-y-4">
+              {Object.keys(fieldSchema.properties).map((nestedField) => (
+                renderField(`${field}.${nestedField}`, fieldSchema.properties[nestedField])
+              ))}
+            </div>
+          </div>
+        );
 
       default:
         return null;
@@ -406,6 +409,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
             </Label>
             {useTextarea ? (
               <Textarea
+                className="bg-background/10 border-border focus:border-primary/50"
                 id={id}
                 value={currentValue || ''}
                 onChange={(e) => handleNestedChange(currentPath, e.target.value)}
@@ -415,6 +419,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
               />
             ) : (
               <Input
+                className="bg-background/10 border-border focus:border-primary/50"
                 id={id}
                 type={fieldSchema.format === 'url' ? 'url' : 'text'} 
                 value={currentValue || ''}
@@ -481,28 +486,9 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
                 {items.map((item: any, index: number) => {
                   const itemPath = `${currentPath}[${index}]`;
                   return (
-                  <Card key={itemPath} className="bg-muted/50 overflow-hidden"> {/* Added overflow-hidden */}
-                     <CardHeader className="flex flex-row items-center justify-between py-3 px-4 bg-background border-b"> {/* Card Header */}
-                       <CardTitle className="text-base font-medium">
-                         {itemSchema.title || field} #{index + 1}
-                       </CardTitle>
-                       {!readOnly && (
-                         <Button
-                           variant="ghost"
-                           size="icon"
-                           className="h-7 w-7 text-destructive hover:text-destructive hover:bg-destructive/10" // Destructive styling
-                           onClick={() => {
-                             const newItems = [...items];
-                             newItems.splice(index, 1);
-                             handleNestedChange(currentPath, newItems);
-                           }}
-                         >
-                           <Trash2 className="h-4 w-4" />
-                         </Button>
-                       )}
-                     </CardHeader>
-                    <CardContent className="p-4"> {/* Adjusted padding */}
-                       <div className="space-y-4">
+                  <Card key={itemPath} className="overflow-hidden"> {/* Added overflow-hidden */}
+                    <CardContent className="px-4"> {/* Adjusted padding */}
+                       <div className="space-y-2">
                         {Object.keys(itemSchema.properties).map((itemField) => (
                           renderFieldRevised(itemField, itemSchema.properties[itemField], itemPath)
                         ))}

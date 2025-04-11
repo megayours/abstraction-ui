@@ -98,19 +98,8 @@ export default function UserJourney() {
         </div>
 
         <div className="max-w-4xl mx-auto space-y-4 md:space-y-8 relative">
-          {/* First Step */}
-          <div className="flex justify-center">
-            <JourneyStep
-              title="Mint MegaData"
-              description="Create your first on-chain metadata token"
-              icon={Boxes}
-              href="/megadata"
-            />
-          </div>
-
           {/* Split Indicator */}
           <div className="flex flex-col items-center gap-2 md:gap-4">
-            <AnimatedArrow delay={0.5} />
             <div className="flex items-center gap-2 text-muted-foreground">
               <Split className="w-4 h-4 md:w-5 md:h-5" />
               <span className="text-xs md:text-sm">Choose your path</span>
@@ -122,12 +111,13 @@ export default function UserJourney() {
             {/* Left Path */}
             <div className="space-y-3 md:space-y-4 relative">
               <div className="absolute inset-0 -m-2 md:-m-4 rounded-lg bg-primary/5 -z-10" />
-              <h3 className="text-center text-xs md:text-sm font-medium text-muted-foreground">Path 1</h3>
+              <h3 className="text-center text-xs md:text-sm font-medium text-muted-foreground">Option 1</h3>
               <JourneyStep
-                title="Mint your own NFTs"
-                description="Create your own NFT contract using MegaData via our MegaRouter Token URI gateway."
+                title="Create a new Collection"
+                description="Create your own Dynamic Token Collection using MegaData via our MegaRouter Token URI gateway."
                 icon={Boxes}
                 delay={0.2}
+                href="/dynamic-tokens/create"
               />
               <AnimatedArrow delay={0.7} />
             </div>
@@ -135,13 +125,13 @@ export default function UserJourney() {
             {/* Right Path */}
             <div className="space-y-3 md:space-y-4 relative">
               <div className="absolute inset-0 -m-2 md:-m-4 rounded-lg bg-primary/5 -z-10" />
-              <h3 className="text-center text-xs md:text-sm font-medium text-muted-foreground">Path 2</h3>
+              <h3 className="text-center text-xs md:text-sm font-medium text-muted-foreground">Option 2</h3>
               <JourneyStep
-                title="Create Airdrop"
-                description="Allow your community to automatically claim their airdrop based on your defined query filters. E.g. Hold a specific NFT, and/or have a certain balance of a token."
+                title="Extend a Collection"
+                description="Extend an existing Dynamic Token Collection using MegaData via our MegaRouter Token URI gateway."
                 icon={Gift}
                 delay={0.2}
-                href="/airdrop"
+                href="/dynamic-tokens/extend"
               />
               <AnimatedArrow delay={0.7} />
             </div>

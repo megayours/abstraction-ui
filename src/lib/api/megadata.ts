@@ -8,12 +8,14 @@ export interface Collection {
   created_at: string | Date | number;
   updated_at: string | Date | number;
   modules: string[];
+  type: string;
 }
 
 export interface Token {
   id: string;
   collection_id: number;
   data: Record<string, any>;
+  modules: string[];
   is_published: boolean;
   created_at: string | Date | number;
   updated_at: string | Date | number;
@@ -38,6 +40,24 @@ export interface Module {
 export interface ValidationResult {
   valid: boolean;
   errors: string[];
+}
+
+export type ExternalCollectionCreatePayload = {
+  source: string;
+  id: string;
+  type: string;
+};
+
+export interface ExternalCollectionDetails {
+  source: string;
+  id: string;
+  type: string;
+  last_checked: number | null;
+}
+
+export interface ExternalCollection extends Collection {
+  type: 'external';
+  external_details: ExternalCollectionDetails;
 }
 
 export type BulkTokenCreatePayload = {
@@ -66,8 +86,17 @@ const addAuthHeaders = (headers: HeadersInit) => {
   }
 }
 
-export async function getCollections(): Promise<Collection[]> {
-  const response = await fetch(`${API_URL}/megadata/collections`, {
+// Define the type for the optional parameters for getCollections
+type GetCollectionsParams = {
+  type?: 'external'; // Or potentially other types in the future
+};
+
+export async function getCollections(params?: GetCollectionsParams): Promise<Collection[]> {
+  let url = `${API_URL}/megadata/collections`; // Use let for mutable URL
+  if (params?.type) {
+    url += `?type=${params.type}`; // Append type query parameter if present
+  }
+  const response = await fetch(url, { // Use the potentially modified URL
     headers: addAuthHeaders({})
   });
   if (!response.ok) {
@@ -76,11 +105,11 @@ export async function getCollections(): Promise<Collection[]> {
   return response.json();
 }
 
-export async function createCollection(name: string, modules: string[]): Promise<Collection> {
+export async function createCollection(name: string): Promise<Collection> {
   const response = await fetch(`${API_URL}/megadata/collections`, {
     method: 'POST',
     headers: addAuthHeaders({}),
-    body: JSON.stringify({ name, modules }),
+    body: JSON.stringify({ name }),
   });
   if (!response.ok) {
     throw new Error('Failed to create collection');
@@ -154,11 +183,11 @@ export async function getToken(collection_id: number, token_id: string): Promise
   return response.json();
 }
 
-export async function updateToken(collection_id: number, token_id: string, data: Record<string, any>): Promise<Token> {
+export async function updateToken(collection_id: number, token_id: string, data: Record<string, any>, modules: string[]): Promise<Token> {
   const response = await fetch(`${API_URL}/megadata/collections/${collection_id}/tokens/${token_id}`, {
     method: 'PUT',
     headers: addAuthHeaders({}),
-    body: JSON.stringify({ data }),
+    body: JSON.stringify({ data, modules }),
   });
   if (!response.ok) {
     throw new Error('Failed to update token');
@@ -270,7 +299,11 @@ export const publishTokens = async (collectionId: number, tokenIds: string[], pu
 
 export const createTokensBulk = async (
   collectionId: number,
-  tokens: BulkTokenCreatePayload[]
+  tokens: Array<{
+    id: string;
+    data: Record<string, any>;
+    modules: string[];
+  }>
 ): Promise<Token[]> => {
   const response = await fetch(`${API_URL}/megadata/collections/${collectionId}/tokens`, {
     method: 'POST',
@@ -311,3 +344,29 @@ const bufferToBase64 = (buffer: ArrayBuffer): string => {
   }
   return btoa(binary);
 };
+
+export async function validateToken(collectionId: number, tokenId: string): Promise<{ isValid: boolean; error?: string }> {
+  const response = await fetch(`${API_URL}/megadata/collections/${collectionId}/tokens/${tokenId}/validate`, {
+    method: 'GET',
+    headers: addAuthHeaders({}),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Failed to validate token: ${response.statusText}`);
+  }
+
+  return response.json();
+}
+
+export async function createExternalCollection(payload: ExternalCollectionCreatePayload): Promise<ExternalCollection> {
+  const response = await fetch(`${API_URL}/megadata/external-collections`, {
+    method: 'POST',
+    headers: addAuthHeaders({ 'Content-Type': 'application/json' }),
+    body: JSON.stringify(payload),
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Failed to create external collection' }));
+    throw new Error(errorData.error || 'Failed to create external collection');
+  }
+  return response.json();
+}

@@ -11,20 +11,19 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface CreateTokenDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onConfirm: (tokenId: string) => Promise<void>;
-  isCreating: boolean;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  onSubmit: (tokenId: string) => Promise<void>;
 }
 
 export function CreateTokenDialog({
-  isOpen,
-  onClose,
-  onConfirm,
-  isCreating,
+  open,
+  onOpenChange,
+  onSubmit,
 }: CreateTokenDialogProps) {
   const [tokenId, setTokenId] = useState('');
   const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,18 +34,21 @@ export function CreateTokenDialog({
       return;
     }
 
+    setIsSubmitting(true);
     try {
-      await onConfirm(tokenId.trim());
+      await onSubmit(tokenId.trim());
       setTokenId('');
       setError('');
-      onClose();
+      onOpenChange(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create token');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Create New Token</DialogTitle>
@@ -64,7 +66,7 @@ export function CreateTokenDialog({
                   setError('');
                 }}
                 placeholder="Enter token ID"
-                disabled={isCreating}
+                disabled={isSubmitting}
               />
               {error && (
                 <p className="text-sm text-destructive">{error}</p>
@@ -76,16 +78,16 @@ export function CreateTokenDialog({
             <Button
               type="button"
               variant="outline"
-              onClick={onClose}
-              disabled={isCreating}
+              onClick={() => onOpenChange(false)}
+              disabled={isSubmitting}
             >
               Cancel
             </Button>
             <Button
               type="submit"
-              disabled={isCreating}
+              disabled={isSubmitting}
             >
-              {isCreating ? 'Creating...' : 'Create'}
+              {isSubmitting ? 'Creating...' : 'Create'}
             </Button>
           </DialogFooter>
         </form>

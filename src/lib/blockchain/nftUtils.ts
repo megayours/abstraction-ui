@@ -3,17 +3,13 @@ import { ethers } from 'ethers';
 // Define the structure for the data we want to return
 export interface DetectedTokenData {
   tokenId: string;
-  uri: string;
-  metadata: Record<string, any> | null;
 }
 
 // Define the progress callback type
 export type FetchProgressCallback = (fetched: number, total: number) => void;
 
-// Minimal ABI for ERC721 Metadata and Enumerable interfaces
+// Minimal ABI for ERC721 Enumerable interface
 const erc721Abi = [
-  // ERC721Metadata
-  "function tokenURI(uint256 tokenId) external view returns (string memory)",
   // ERC721Enumerable
   "function totalSupply() external view returns (uint256)",
   "function tokenByIndex(uint256 index) external view returns (uint256)"
@@ -73,13 +69,13 @@ const fetchMetadata = async (uri: string): Promise<Record<string, any> | null> =
 };
 
 /**
- * Fetches token IDs and URIs for an ERC721 contract using the Enumerabl extension.
- * Assumes the contract implements ERC721Metadata and ERC721Enumerable.
+ * Fetches token IDs for an ERC721 contract using the Enumerable extension.
+ * Assumes the contract implements ERC721Enumerable.
  *
  * @param contractAddress The address of the ERC721 contract.
  * @param provider An ethers.js Provider instance.
  * @param onProgress Optional callback function to report progress.
- * @returns A promise that resolves to an array of { tokenId, uri, metadata }.
+ * @returns A promise that resolves to an array of token IDs.
  * @throws If the contract doesn't support enumeration or other RPC errors occur.
  */
 export async function fetchErc721UrisViaEnumeration(
@@ -134,43 +130,17 @@ export async function fetchErc721UrisViaEnumeration(
     console.log(`Fetching batch indices ${i} to ${batchEnd - 1}`);
 
     try {
-      // 1. Fetch token IDs for the current batch of indices
+      // Fetch token IDs for the current batch of indices
       const tokenIdPromises = batchIndices.map(index => contract.tokenByIndex(index));
       const tokenIdsBigInt: bigint[] = await Promise.all(tokenIdPromises);
       const tokenIds = tokenIdsBigInt.map(id => id.toString());
 
-      // 2. Fetch token URIs for the fetched token IDs
-      const uriPromises = tokenIds.map(tokenId => 
-        contract.tokenURI(tokenId).catch(err => {
-          console.warn(`Failed to fetch URI for token ID ${tokenId}:`, err);
-          return null; // Return null to mark for filtering later
-        })
-      );
-      const uris = await Promise.all(uriPromises);
+      // Create token data objects
+      const batchResults: DetectedTokenData[] = tokenIds.map(tokenId => ({
+        tokenId
+      }));
 
-      // Fetch metadata only for successfully retrieved URIs
-      const metadataPromises = uris
-        .map(async (uriResult, index) => {
-          const tokenId = tokenIds[index];
-          // Skip if URI fetch failed for this token
-          if (uriResult === null || typeof uriResult !== 'string') {
-            return null; // Mark for filtering later
-          }
-          const metadata = await fetchMetadata(uriResult);
-          return {
-            tokenId: tokenId.toString(),
-            uri: uriResult,
-            metadata,
-          };
-        });
-
-      // Resolve all metadata fetches and filter out the nulls (where URI fetch failed)
-      const resolvedMetadata = await Promise.all(metadataPromises);
-      const batchResults: DetectedTokenData[] = resolvedMetadata.filter(
-        (item): item is DetectedTokenData => item !== null
-      );
-
-      allTokens.push(...batchResults); // Already filtered
+      allTokens.push(...batchResults);
       fetchedCount += batchResults.length;
 
       console.log(`Batch ${i / batchSize + 1} completed. Fetched ${fetchedCount}/${totalSupply} tokens.`);
@@ -178,18 +148,16 @@ export async function fetchErc721UrisViaEnumeration(
 
     } catch (batchError) {
       console.error(`Error fetching batch indices ${i} to ${batchEnd - 1}:`, batchError);
-      // Decide how to handle batch errors: stop, skip batch, collect errors?
-      // For now, we re-throw to stop the process.
       throw new Error(`Failed to process token batch starting at index ${i}: ${batchError instanceof Error ? batchError.message : String(batchError)}`);
     }
 
-    // 4. Throttle before next batch
+    // Throttle before next batch
     if (batchEnd < totalSupply) {
       await new Promise(resolve => setTimeout(resolve, delayBetweenBatches));
     }
   }
 
-  console.log(`Finished fetching all ${allTokens.length} token URIs.`);
+  console.log(`Finished fetching all ${allTokens.length} tokens.`);
   return allTokens;
 }
 

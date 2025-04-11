@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Menu, X, User, LogOut, Search, Database, Receipt, Boxes, Gift } from 'lucide-react'
+import { Menu, X, User, LogOut, Search, Database, Receipt, Boxes, Gift, Layers } from 'lucide-react'
 import React from 'react'
 import Logo from './logo'
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from './ui/navigation-menu'
@@ -22,47 +22,26 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
     {
-        name: 'Mint',
-        href: '#',
-        icon: Boxes,
-        description: 'Create and manage your token collections',
-        submenu: [
-            {
-                name: 'Airdrop',
-                href: '/mint/airdrop',
-                icon: Gift,
-                description: 'Create an airdrop based on your saved queries',
-            },
-            {
-                name: 'Custom Collection',
-                href: '/mint/custom',
-                icon: Boxes,
-                description: 'Create your own NFT collection',
-            }
-        ],
+        name: 'Dynamic Tokens',
+        href: '/dynamic-tokens',
+        icon: Layers,
+        description: 'View, create, or extend Dynamic Tokens.',
         requiresAuth: true,
     },
-    {
-        name: 'MegaData',
-        href: '/megadata',
-        icon: Database,
-        description: 'On-chain metadata storage for your tokens.',
-        requiresAuth: true,
-    },
-    {
-        name: 'Assets',
-        href: '/assets',
-        icon: Receipt,
-        description: 'View tracked assets',
-        requiresAuth: true,
-    },
-    {
-        name: 'Query',
-        href: '/query',
-        icon: Search,
-        description: 'Query assets based on your criteria.',
-        requiresAuth: true,
-    }
+    // {
+    //     name: 'Assets',
+    //     href: '/assets',
+    //     icon: Receipt,
+    //     description: 'View tracked assets',
+    //     requiresAuth: true,
+    // },
+    // {
+    //     name: 'Query',
+    //     href: '/query',
+    //     icon: Search,
+    //     description: 'Query assets based on your criteria.',
+    //     requiresAuth: true,
+    // }
 ]
 
 // User settings menu item - separate from main menu
@@ -128,7 +107,7 @@ export const HeroHeader = () => {
     }, []);
 
     return (
-        <header className="bg-background/50 fixed z-20 w-full border-b backdrop-blur-3xl">
+        <header className="bg-primary-foreground fixed z-20 w-full border-b backdrop-blur-3xl">
             <div className="mx-auto max-w-6xl px-6 transition-all duration-300">
                 <div className="relative flex items-center justify-between py-3 lg:py-4">
                     <Link

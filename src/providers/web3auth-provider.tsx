@@ -9,6 +9,7 @@ import { getPublicCompressed } from '@toruslabs/eccrypto';
 import { Web3 } from 'web3';
 import { AccountLink } from '@/lib/types';
 import { fetchAccountLinks } from '@/lib/api/abstraction-chain';
+import { useChain } from './chain-provider';
 
 interface Web3AuthContextType {
   web3auth: Web3Auth | null;
@@ -72,29 +73,19 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [connectedAccounts, setConnectedAccounts] = useState<AccountLink[]>([]);
+  const { selectedChain } = useChain();
 
   useEffect(() => {
     const init = async () => {
       try {
-        const chainConfig = {
-          chainNamespace: CHAIN_NAMESPACES.EIP155,
-          chainId: "0xA86A", // hex of 43114 for Avalanche Mainnet
-          rpcTarget: "https://api.avax.network/ext/bc/C/rpc",
-          displayName: "Avalanche C-Chain",
-          blockExplorerUrl: "https://subnets.avax.network/c-chain",
-          ticker: "AVAX",
-          tickerName: "Avalanche",
-          logo: "https://cryptologos.cc/logos/avalanche-avax-logo.png",
-        };
-
         const privateKeyProvider = new EthereumPrivateKeyProvider({
-          config: { chainConfig }
+          config: { chainConfig: selectedChain.web3AuthConfig }
         });
 
         const web3authInstance = new Web3Auth({
           clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID || '',
           web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
-          chainConfig,
+          chainConfig: selectedChain.web3AuthConfig,
           privateKeyProvider,
         });
 
@@ -133,7 +124,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
     };
 
     init();
-  }, []);
+  }, [selectedChain]);
 
   // Fetch connected accounts when account changes
   useEffect(() => {

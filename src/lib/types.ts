@@ -54,7 +54,7 @@ export type ApiResponse = ApiSuccessResponse | ApiErrorResponse;
 export type MegaDataItem = {
   collection: string;
   tokenId: string;
-  properties: Record<string, any>;
+  data: Record<string, any>;
 }
 export type ManageQueryInput = {
   auth: SignatureData;
