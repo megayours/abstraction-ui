@@ -6,7 +6,6 @@ import { Plus, Globe, Save, Upload, Copy, X, Lock, Zap, FolderOpen, FileText, Li
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import ImportExportTemplate from './components/ImportExportTemplate';
 import { TokenPageableList } from '@/components/TokenPageableList';
 import MegadataForm from './components/MegadataForm';
 import * as megadataApi from '@/lib/api/megadata';
@@ -193,7 +192,15 @@ const TokenModules: React.FC<{
   );
 };
 
-export default function MegaData({ initialCollectionId }: { initialCollectionId?: number }) {
+type PageProps = {
+  params: Promise<{
+    collectionId?: string;
+  }>;
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+};
+
+export default function MegaData({ params, searchParams }: PageProps) {
+  const [initialCollectionId, setInitialCollectionId] = useState<number | undefined>();
   const { walletAddress } = useWeb3Auth();
   const router = useRouter();
   const [collections, setCollections] = useState<Collection[]>([]);
@@ -213,6 +220,12 @@ export default function MegaData({ initialCollectionId }: { initialCollectionId?
   const [isCreateTokenDialogOpen, setIsCreateTokenDialogOpen] = useState(false);
   const [tokenValidationError, setTokenValidationError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  useEffect(() => {
+    Promise.all([params, searchParams]).then(([paramsResult, searchParamsResult]) => {
+      setInitialCollectionId(paramsResult.collectionId ? Number(paramsResult.collectionId) : undefined);
+    });
+  }, [params, searchParams]);
 
   const handleCollectionSelect = useCallback((id: number | null) => {
     console.log('handleCollectionSelect called with id:', id);

@@ -207,7 +207,7 @@ export async function getItems(collection: string): Promise<MegaDataItem[]> {
   return items.map(item => ({
     collection: item.collection,
     tokenId: item.token_id,
-    properties: item.properties
+    data: item.properties
   }));
 }
 
@@ -221,6 +221,6 @@ export async function getItem(collection: string, token_id: string): Promise<Meg
   return {
     collection: fromHexBuffer(item.collection),
     tokenId: item.token_id,
-    properties: item.properties
+    data: item.properties
   };
 }

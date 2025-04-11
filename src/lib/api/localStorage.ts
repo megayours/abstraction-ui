@@ -94,7 +94,7 @@ export const createLocalCollection = (
     items.push({
       collection: id,
       tokenId,
-      properties: {
+      data: {
         erc721: {
           name: `${name} #${tokenId}`,
           ...(moduleSettings.erc721 || {})
