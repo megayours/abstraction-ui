@@ -302,9 +302,9 @@ export default function MegaData({ params, searchParams }: PageProps) {
       const response = await megadataApi.getTokens(id, page, TOKENS_PAGE_SIZE);
       if (id === selectedCollection) {
         console.log(`Setting tokens for collection: ${id}`);
-        setLoadedTokens(response.data);
-        setTotalTokens(response.pagination.total);
-        setCurrentPage(response.pagination.page);
+        setLoadedTokens(response.tokens);
+        setTotalTokens(response.total);
+        setCurrentPage(response.page);
       } else {
         console.log(`Skipping setTokens for ${id} because selection changed to ${selectedCollection}`);
       }
@@ -429,7 +429,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
       const [newToken] = await megadataApi.createTokensBulk(selectedCollection, [tokenData]);
       await loadTokens(selectedCollection, 1);
       const freshTokens = await megadataApi.getTokens(selectedCollection, 1, TOKENS_PAGE_SIZE);
-      const foundToken = freshTokens.data.find(t => t.id === newToken.id);
+      const foundToken = freshTokens.tokens.find(t => t.id === newToken.id);
       setSelectedToken(foundToken || newToken);
       setIsCreateTokenDialogOpen(false);
     } catch (error) {

@@ -65,15 +65,15 @@ export type BulkTokenCreatePayload = {
   data: Record<string, any>; // Metadata
 };
 
+export type Pagination = {
+  total: number;
+  page: number;
+  limit: number;
+};
+
 // Interface for the paginated response structure
-export interface PaginatedTokensResponse {
-  data: Token[];
-  pagination: {
-    total: number;
-    page: number;
-    limit: number;
-    total_pages: number;
-  };
+export interface PaginatedTokensResponse extends Pagination {
+  tokens: Token[];
 }
 
 const API_URL = config.megadataApiUri;
