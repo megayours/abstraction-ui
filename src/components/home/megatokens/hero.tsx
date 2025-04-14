@@ -3,13 +3,15 @@ import React, { useRef } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import Image from 'next/image'
-import { InfiniteSlider } from './ui/infinite-slider'
-import { ProgressiveBlur } from './ui/progressive-blur'
-import Ethereum from './logos/ethereum'
-import Solana from './logos/solana'
-import BNB from './logos/bnb'
+import { InfiniteSlider } from '../../ui/infinite-slider'
+import { ProgressiveBlur } from '../../ui/progressive-blur'
+import Ethereum from '../../logos/ethereum'
+import Solana from '../../logos/solana'
+import BNB from '../../logos/bnb'
 import { motion } from 'framer-motion'
-import Polygon from './logos/polygon'
+import Polygon from '../../logos/polygon'
+import { Base } from '@/components/logos/base'
+import { Arbitrum } from '@/components/logos/arbitrum'
 
 export default function HeroSection() {
     const ref = useRef(null)
@@ -34,13 +36,27 @@ export default function HeroSection() {
             name: 'Polygon',
             logo: Polygon,
             href: 'https://polygon.technology/'
+        },
+        {
+            name: 'Base',
+            logo: Base,
+            href: 'https://base.org/'
+        },
+        {
+            name: 'Arbitrum',
+            logo: Arbitrum,
+            href: 'https://arbitrum.io/'
         }
     ];
 
     return (
         <>
-            <main className="overflow-x-hidden pb-24">
-                <section>
+            <main className="overflow-x-hidden pb-12">
+                <section className="relative">
+                    <div className="absolute inset-0 -z-10 overflow-hidden">
+                        <div className="absolute left-[50%] top-[50%] h-[60rem] w-[90rem] -translate-x-1/2 -translate-y-1/2 [mask-image:radial-gradient(closest-side,white,transparent)] bg-gradient-to-r from-[#F8F1DB]/20 via-[#AAC4E7]/20 to-[#F8F1DB]/20 opacity-30">
+                        </div>
+                    </div>
                     <div
                         className="pb-12 pt-24 md:pb-12 md:pt-16 lg:pb-32 lg:pt-32"
                         ref={ref}
@@ -48,22 +64,27 @@ export default function HeroSection() {
                         <div className="relative mx-auto flex max-w-6xl flex-col px-4 lg:block">
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:w-1/2 lg:text-left">
                                 <h1 className="font-serif max-w-2xl text-balance text-4xl font-medium md:text-5xl lg:mt-16 xl:text-7xl">
-                                    MegaTokens
+                                    Megatokens
                                 </h1>
                                 <p className="mt-2 md:mt-4 max-w-2xl text-pretty text-base md:text-lg">
-                                    Fully on-chain programmable tokens and metadata.
-                                    On-chain metadata enables the creation of rich and dynamic experiences where
-                                    the token can evolve over time.
+                                    Attach PDFs, animations, videos, GIFs, and 3D models to your tokens. Add custom 
+                                    business logic to create interactive digital experiences that evolve over time.
+                                </p>
+
+                                <p className="mt-2 md:mt-4 max-w-2xl text-pretty text-base md:text-lg">
+                                    Our fully on-chain programmable tokens work with both new and existing collections, 
+                                    including those using IPFS, Arweave, or other off-chain storage.
                                 </p>
 
                                 <div className="mt-4 md:mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">
                                     <Button
+                                        variant="outline"
                                         asChild
                                         size="lg"
                                         className="px-5 text-base"
                                     >
-                                        <Link href="/megatokens">
-                                            <span className="text-nowrap">Launch Tokens</span>
+                                        <Link href="#user-journey">
+                                            <span className="text-nowrap">Launch Collection</span>
                                         </Link>
                                     </Button>
                                 </div>
@@ -78,7 +99,7 @@ export default function HeroSection() {
                                 lg:absolute lg:right-0 lg:-top-20 lg:order-last">
                                 <Image
                                     className="h-48 w-48 object-cover rounded-full sm:h-72 sm:w-72 
-                                    lg:h-[500px] lg:w-[500px] lg:object-contain dark:mix-blend-lighten 
+                                    lg:h-[450px] lg:w-[450px] lg:object-contain dark:mix-blend-lighten 
                                     dark:invert-0 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
                                     src="/images/homepage.jpg"
                                     alt="Abstract Object"
@@ -90,7 +111,7 @@ export default function HeroSection() {
                         </div>
                     </div>
                 </section>
-                <section className="bg-background pb-2 md:pb-8 lg:pb-16 md:pt-16">
+                <section className="bg-background pb-2 md:pb-8 lg:pb-8 md:pt-0">
                     <div className="group relative m-auto max-w-6xl px-4 md:px-6">
                         <div className="flex flex-col items-center md:flex-row">
                             <div className="md:max-w-44 md:border-r md:pr-6">

@@ -21,7 +21,7 @@ export function SignInButton() {
       disabled={isLoading}
       className="w-full"
     >
-      {isLoading ? 'Connecting...' : 'Sign in with Web3Auth'}
+      {isLoading ? 'Connecting...' : 'Sign-in'}
     </Button>
   );
 } 

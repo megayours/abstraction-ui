@@ -88,10 +88,11 @@ export default function UserJourney() {
   const containerRef = React.useRef(null)
 
   return (
-    <section id="user-journey" ref={containerRef} className="pt-0 pb-6 md:pt-0 md:pb-12 lg:py-0 bg-background relative">
-      <div className="container mx-auto px-4">
+    <section id="user-journey" ref={containerRef} className="relative py-24">
+      <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white"></div>
+      <div className="container mx-auto px-4 relative">
         <div className="text-center mb-4 md:mb-8">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif mb-2 md:mb-4">Launching MegaTokens</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif mb-2 md:mb-4">Launching a Collection</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
             Launching your own MegaToken is easy. Follow these steps to create your own programmable tokens with on-chain metadata
           </p>
@@ -140,11 +141,10 @@ export default function UserJourney() {
           {/* Final Unified Step */}
           <div className="flex justify-center mt-4 md:mt-8 lg:mt-16">
             <JourneyStep
-              title="Attach Custom Modules"
+              title="Attach Modules"
               description="Enhance your tokens with custom & reusable modules from our repository in the style of NPM, but for Web3."
               icon={LinkIcon}
               delay={0}
-              isComingSoon
               className="w-full max-w-xl"
             />
           </div>

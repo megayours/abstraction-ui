@@ -1,6 +1,6 @@
 'use client'
 import Link from 'next/link'
-import { Menu, X, User, LogOut, Search, Database, Receipt, Boxes, Gift, Layers } from 'lucide-react'
+import { Menu, X, User, LogOut, Search, Database, Receipt, Boxes, Gift, Layers, Link2 } from 'lucide-react'
 import React from 'react'
 import Logo from './logo'
 import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMenuLink, NavigationMenuList, NavigationMenuTrigger } from './ui/navigation-menu'
@@ -9,7 +9,7 @@ import { useWeb3Auth } from '@/providers/web3auth-provider'
 import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { SignInButton } from './auth/SignInButton'
-
+import { links } from '@/lib/links'
 type MenuItem = {
     name: string;
     href: string;
@@ -22,11 +22,18 @@ type MenuItem = {
 
 const menuItems: MenuItem[] = [
     {
-        name: 'MegaTokens',
+        name: 'Megatokens',
         href: '/megatokens',
         icon: Layers,
         description: 'View, create, or extend MegaTokens.',
-        requiresAuth: true,
+        requiresAuth: false,
+    },
+    {
+        name: 'Megahub',
+        href: links.megahub,
+        icon: Link2,
+        description: 'Explore and share token modules.',
+        requiresAuth: false,
     },
     // {
     //     name: 'Assets',

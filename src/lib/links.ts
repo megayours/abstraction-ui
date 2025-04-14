@@ -3,4 +3,5 @@ export const links = {
   github: 'https://github.com/megayours',
   docs: 'https://docs.megayours.com/',
   x: 'https://x.com/megayourslabs',
+  megahub: 'https://code.megayours.com'
 }

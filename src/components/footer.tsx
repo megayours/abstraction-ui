@@ -11,10 +11,6 @@ const footerLinks = [
         href: links.github,
     },
     {
-        title: 'Documentation',
-        href: links.docs,
-    },
-    {
         title: 'Contact',
         href: 'mailto:antonio.palma@megayours.com',
     },
