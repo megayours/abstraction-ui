@@ -6,7 +6,7 @@ export default function ShareSection() {
     <section className="relative py-24">
       <div className="mx-auto max-w-5xl px-6">
         <div className="grid gap-12 md:grid-cols-2">
-          <div className="grid gap-6">
+          <div className="grid gap-6 order-2 md:order-1">
             <Card className="p-6 hover:shadow-lg transition-shadow">
               <div className="flex items-start gap-4">
                 <div className="p-3 rounded-lg bg-[#2A4A59]/10">
@@ -30,7 +30,7 @@ export default function ShareSection() {
               </div>
             </Card>
           </div>
-          <div className="space-y-8">
+          <div className="space-y-8 order-1 md:order-2">
             <h2 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2A4A59] to-[#0B2B59]">
               Supercharge Your Megatokens
             </h2>

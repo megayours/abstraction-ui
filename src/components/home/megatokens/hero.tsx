@@ -51,7 +51,7 @@ export default function HeroSection() {
 
     return (
         <>
-            <main className="overflow-x-hidden pb-12">
+            <main className="overflow-x-hidden pb-12 md:mx-18">
                 <section className="relative">
                     <div className="absolute inset-0 -z-10 overflow-hidden">
                         <div className="absolute left-[50%] top-[50%] h-[60rem] w-[90rem] -translate-x-1/2 -translate-y-1/2 [mask-image:radial-gradient(closest-side,white,transparent)] bg-gradient-to-r from-[#F8F1DB]/20 via-[#AAC4E7]/20 to-[#F8F1DB]/20 opacity-30">
@@ -62,6 +62,25 @@ export default function HeroSection() {
                         ref={ref}
                     >
                         <div className="relative mx-auto flex max-w-6xl flex-col px-4 lg:block">
+                            <motion.div
+                                initial={{ scale: 1, opacity: 1 }}
+                                whileInView={{ scale: 1, opacity: 1 }}
+                                viewport={{ once: true }}
+                                transition={{ duration: 0.8, ease: "easeOut" }}
+                                className="mx-auto mb-8 lg:mb-0 lg:-z-10 lg:ml-auto 
+                                lg:absolute lg:right-0 lg:-top-20">
+                                <Image
+                                    className="h-40 w-40 object-cover rounded-full 
+                                    lg:h-[450px] lg:w-[450px] lg:object-contain dark:mix-blend-lighten 
+                                    dark:invert-0 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+                                    src="/images/homepage.jpg"
+                                    alt="Abstract Object"
+                                    height="800"
+                                    width="800"
+                                    priority
+                                />
+                            </motion.div>
+
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:w-1/2 lg:text-left">
                                 <h1 className="font-serif max-w-2xl text-balance text-4xl font-medium md:text-5xl lg:mt-16 xl:text-7xl">
                                     Megatokens
@@ -89,25 +108,6 @@ export default function HeroSection() {
                                     </Button>
                                 </div>
                             </div>
-
-                            <motion.div
-                                initial={{ scale: 1, opacity: 1 }}
-                                whileInView={{ scale: 1, opacity: 1 }}
-                                viewport={{ once: true }}
-                                transition={{ duration: 0.8, ease: "easeOut" }}
-                                className="hidden lg:block -z-10 order-first ml-auto 
-                                lg:absolute lg:right-0 lg:-top-20 lg:order-last">
-                                <Image
-                                    className="h-48 w-48 object-cover rounded-full sm:h-72 sm:w-72 
-                                    lg:h-[450px] lg:w-[450px] lg:object-contain dark:mix-blend-lighten 
-                                    dark:invert-0 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
-                                    src="/images/homepage.jpg"
-                                    alt="Abstract Object"
-                                    height="800"
-                                    width="800"
-                                    priority
-                                />
-                            </motion.div>
                         </div>
                     </div>
                 </section>
