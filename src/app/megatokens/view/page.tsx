@@ -16,52 +16,28 @@ import { Badge } from '@/components/ui/badge'
 type FilterType = 'all' | 'owned' | 'external';
 
 export default function ViewCollectionsPage() {
-  const { walletAddress, isConnected } = useWeb3Auth();
-  const [ownedCollections, setOwnedCollections] = useState<Collection[]>([]);
-  const [externalCollections, setExternalCollections] = useState<Collection[]>([]);
+  const { walletAddress } = useWeb3Auth();
+  const [collections, setCollections] = useState<Collection[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filter, setFilter] = useState<FilterType>('all');
 
-  const allCollections = useMemo(() => {
-    return [...ownedCollections, ...externalCollections].sort((a, b) => {
-        const nameCompare = a.name.localeCompare(b.name);
-        if (nameCompare !== 0) return nameCompare;
-        return a.id - b.id;
-    });
-  }, [ownedCollections, externalCollections]);
-
-  const displayedCollections = useMemo(() => {
-    let filtered = [];
-    if (filter === 'owned') {
-      filtered = ownedCollections;
-    } else if (filter === 'external') {
-      filtered = externalCollections;
-    } else {
-      filtered = allCollections;
-    }
-    return filtered.sort((a, b) => {
-        const nameCompare = a.name.localeCompare(b.name);
-        if (nameCompare !== 0) return nameCompare;
-        return a.id - b.id;
-    });
-  }, [filter, ownedCollections, externalCollections, allCollections]);
-
   useEffect(() => {
     const loadCollections = async () => {
-      if (!isConnected || !walletAddress) {
+      if (!!walletAddress) {
         setIsLoading(false);
         return;
       }
       setIsLoading(true);
       setError(null);
       try {
-        const [fetchedOwnedCollections, fetchedExternalCollections] = await Promise.all([
-          megadataApi.getCollections(),
-          megadataApi.getCollections({ type: 'external' })
-        ]);
-        setOwnedCollections(fetchedOwnedCollections);
-        setExternalCollections(fetchedExternalCollections);
+        if (filter === 'owned' && walletAddress) {
+          const fetchedOwnedCollections = await megadataApi.getCollections({ accountId: walletAddress });
+          setCollections(fetchedOwnedCollections);
+        } else {
+          const fetchedExternalCollections = await megadataApi.getCollections({ type: 'external' });
+          setCollections(fetchedExternalCollections);
+        }
       } catch (err) {
         console.error("Failed to load collections:", err);
         setError("Failed to load collections. Please try again later.");
@@ -71,7 +47,7 @@ export default function ViewCollectionsPage() {
     };
 
     loadCollections();
-  }, [walletAddress, isConnected]);
+  }, [walletAddress]);
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
@@ -124,7 +100,7 @@ export default function ViewCollectionsPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center text-sm text-muted-foreground">
             <Zap className="h-4 w-4 mr-1.5 text-primary/70" />
-            {collection.type === 'external' ? 'External Collection' : 'Your Collection'}
+            {collection.type === 'external' ? 'External Collection' : collection.account_id === walletAddress ? 'Your Collection' : 'Shared Collection'}
           </div>
           <Button 
             asChild 
@@ -140,14 +116,6 @@ export default function ViewCollectionsPage() {
   );
 
   const renderContent = () => {
-    if (!isConnected) {
-      return (
-        <div className="text-center py-12">
-          <p className="text-lg text-muted-foreground">Please connect your wallet to view collections.</p>
-        </div>
-      );
-    }
-
     if (error) {
       return (
         <Alert variant="destructive">
@@ -158,7 +126,7 @@ export default function ViewCollectionsPage() {
       );
     }
     
-    const showEmptyState = !isLoading && displayedCollections.length === 0;
+    const showEmptyState = !isLoading && collections.length === 0;
     let emptyStateMessage = "";
     if (showEmptyState) {
         if (filter === 'owned') emptyStateMessage = "You haven't created any collections yet.";
@@ -173,7 +141,7 @@ export default function ViewCollectionsPage() {
             {filter === 'all' && 'All Collections'}
             {filter === 'owned' && 'Your Collections'}
             {filter === 'external' && 'External Collections'}
-            <span className="ml-2 text-muted-foreground font-normal">({displayedCollections.length})</span>
+            <span className="ml-2 text-muted-foreground font-normal">({collections.length})</span>
           </h2>
           <ToggleGroup 
             type="single"
@@ -191,6 +159,7 @@ export default function ViewCollectionsPage() {
             </ToggleGroupItem>
             <ToggleGroupItem
               value="owned"
+              disabled={!walletAddress}
               aria-label="Show your collections"
               className="inline-flex items-center justify-center whitespace-nowrap px-4 py-2 text-sm font-medium transition-colors hover:bg-muted-foreground/10 data-[state=on]:bg-background data-[state=on]:text-foreground data-[state=on]:shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50"
             >
@@ -224,7 +193,7 @@ export default function ViewCollectionsPage() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {displayedCollections.map(renderCollectionItem)}
+            {collections.map(renderCollectionItem)}
           </div>
         )}
       </div>

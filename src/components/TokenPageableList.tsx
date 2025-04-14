@@ -121,22 +121,23 @@ export function TokenPageableList({
             </Button>
           )}
         </div>
-        <div className="flex items-center justify-center">
-          <PageableList
-            items={items}
-            totalItems={totalItems}
-            currentPage={currentPage}
-            pageSize={pageSize}
-            isLoading={isLoading}
-            onPageChange={onPageChange}
-            renderItem={renderToken}
-            className={className}
-            estimateSize={() => 56}
-          />
-        </div>
       </div>
-      <div className="mt-2 flex-1 overflow-y-auto px-3">
-        {items.map((token, index) => renderToken(token, index))}
+      <div className="flex-1 overflow-y-auto">
+        <PageableList
+          items={items}
+          totalItems={totalItems}
+          currentPage={currentPage}
+          pageSize={pageSize}
+          isLoading={isLoading}
+          onPageChange={onPageChange}
+          renderItem={(token, index) => (
+            <div key={token.id}>
+              {renderToken(token, index)}
+            </div>
+          )}
+          className={className}
+          estimateSize={() => 56}
+        />
       </div>
     </div>
   );

@@ -28,6 +28,14 @@
             "required": false,
             "name": "type",
             "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": false,
+            "name": "account_id",
+            "in": "query"
           }
         ],
         "responses": {
@@ -107,6 +115,11 @@
           "Collections"
         ],
         "summary": "Create a new collection",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -202,6 +215,11 @@
           "Collections"
         ],
         "summary": "Create a new external collection",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "requestBody": {
           "content": {
             "application/json": {
@@ -562,6 +580,11 @@
           "Collections"
         ],
         "summary": "Publish a collection",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -835,6 +858,11 @@
           "Tokens"
         ],
         "summary": "Create tokens in a collection",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1158,6 +1186,11 @@
           "Tokens"
         ],
         "summary": "Update a token",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1351,6 +1384,11 @@
           "Tokens"
         ],
         "summary": "Validate token modification permissions",
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "schema": {
@@ -1471,6 +1509,11 @@
         "tags": [
           "File Upload"
         ],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "summary": "Upload a file to the abstraction chain",
         "requestBody": {
           "content": {
@@ -1514,6 +1557,24 @@
                   "required": [
                     "success",
                     "hash"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }

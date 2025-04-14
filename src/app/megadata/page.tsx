@@ -118,14 +118,13 @@ const TokenModules: React.FC<{
           <Badge
             key={moduleId}
             variant={isProtectedModule(moduleId) ? "default" : "secondary"}
-            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${
-              isProtectedModule(moduleId)
+            className={`flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-full ${isProtectedModule(moduleId)
                 ? 'bg-primary/10 text-primary border border-primary/20'
                 : 'bg-secondary/10 text-secondary-foreground border border-secondary/20'
-            }`}
+              }`}
           >
             {moduleId}
-            {!isProtectedModule(moduleId) && (
+            {!isProtectedModule(moduleId) && !readonly && (
               <button
                 onClick={() => onUpdateModules(token.modules.filter(id => id !== moduleId))}
                 className="ml-1 opacity-60 hover:opacity-100 hover:text-destructive transition-opacity"
@@ -133,7 +132,7 @@ const TokenModules: React.FC<{
                 <X className="h-3 w-3" />
               </button>
             )}
-            {isProtectedModule(moduleId) && (
+            {isProtectedModule(moduleId) || readonly && (
               <div className="ml-1 text-primary/80" title="This module is required and cannot be removed">
                 <Lock className="h-3 w-3" />
               </div>
@@ -157,11 +156,10 @@ const TokenModules: React.FC<{
                 .map(module => (
                   <div
                     key={module.id}
-                    className={`p-4 rounded-lg border transition-all duration-150 cursor-pointer ${
-                      selectedNewModules.includes(module.id)
+                    className={`p-4 rounded-lg border transition-all duration-150 cursor-pointer ${selectedNewModules.includes(module.id)
                         ? 'border-primary bg-primary/5 ring-2 ring-primary/50'
                         : 'border-border hover:border-primary/40 hover:bg-accent/30'
-                    }`}
+                      }`}
                     onClick={() => {
                       setSelectedNewModules(prev =>
                         prev.includes(module.id)
@@ -201,11 +199,13 @@ type PageProps = {
 };
 
 export default function MegaData({ params, searchParams }: PageProps) {
+  console.log('MegaData component rendering with params:', params);
+
   const [initialCollectionId, setInitialCollectionId] = useState<number | undefined>();
   const { walletAddress } = useWeb3Auth();
   const router = useRouter();
   const [collections, setCollections] = useState<Collection[]>([]);
-  const [selectedCollection, setSelectedCollection] = useState<number | null>(initialCollectionId || null);
+  const [selectedCollection, setSelectedCollection] = useState<number | null>(null);
   const [selectedCollectionData, setSelectedCollectionData] = useState<Collection | null>(null);
   const [loadedTokens, setLoadedTokens] = useState<Token[]>([]);
   const [totalTokens, setTotalTokens] = useState<number | null>(null);
@@ -221,14 +221,94 @@ export default function MegaData({ params, searchParams }: PageProps) {
   const [isCreateTokenDialogOpen, setIsCreateTokenDialogOpen] = useState(false);
   const [tokenValidationError, setTokenValidationError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [isManualSelection, setIsManualSelection] = useState(false);
   const [externalDetails, setExternalDetails] = useState<ExternalCollectionDetails | null>(null);
   const [isLoadingExternalDetails, setIsLoadingExternalDetails] = useState<boolean>(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Initialize from URL params
+  useEffect(() => {
+    const initializeFromParams = async () => {
+      console.log('Initializing from params...');
+      const [paramsResult, searchParamsResult] = await Promise.all([params, searchParams]);
+      console.log('Params resolved:', paramsResult);
+      const collectionId = paramsResult.collectionId ? Number(paramsResult.collectionId) : undefined;
+      console.log('Setting initial collection ID:', collectionId);
+      setInitialCollectionId(collectionId);
+      // Only set collection if this is the initial load and not a manual selection
+      if (collectionId && isInitialLoad && !isManualSelection) {
+        console.log('Setting selected collection from URL:', collectionId);
+        setSelectedCollection(collectionId);
+      }
+    };
+    initializeFromParams();
+  }, [params, searchParams, isInitialLoad, isManualSelection]);
+
+  // Effect to handle initial collection loading
+  useEffect(() => {
+    if (isInitialLoad && collections.length > 0) {
+      const collectionId = initialCollectionId;
+      if (collectionId) {
+        const collectionExists = collections.some(c => c.id === collectionId);
+        if (collectionExists && !isManualSelection) {
+          console.log(`Collection ${collectionId} exists, initializing...`);
+          setSelectedCollection(collectionId);
+        }
+      }
+      setIsInitialLoad(false);
+    }
+  }, [collections, initialCollectionId, isInitialLoad, isManualSelection]);
+
+  const loadCollections = useCallback(async () => {
+    console.log('Loading collections...');
+    setIsLoading(true);
+    try {
+      const fetchedCollections = await megadataApi.getCollections();
+      console.log('Fetched collections:', fetchedCollections);
+      setCollections(fetchedCollections);
+    } catch (error) {
+      console.error("Failed to load collections", error);
+      setCollections([]);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    Promise.all([params, searchParams]).then(([paramsResult, searchParamsResult]) => {
-      setInitialCollectionId(paramsResult.collectionId ? Number(paramsResult.collectionId) : undefined);
-    });
-  }, [params, searchParams]);
+    loadCollections();
+  }, [loadCollections]);
+
+  const loadCollectionData = useCallback(async (id: number | null) => {
+    console.log('Loading collection data for ID:', id);
+    if (!id) {
+      setSelectedCollectionData(null);
+      return;
+    }
+    try {
+      const collection = await megadataApi.getCollection(id);
+      console.log('Loaded collection data:', collection);
+      if (id === selectedCollection) {
+        setSelectedCollectionData(collection);
+        if (collection.type === 'external') {
+          setIsLoadingExternalDetails(true);
+          const externalDetails = await megadataApi.getExternalCollection(id);
+          setExternalDetails(externalDetails);
+          setIsLoadingExternalDetails(false);
+        }
+      }
+    } catch (error) {
+      console.error(`Failed to load collection data for ${id}`, error);
+      if (id === selectedCollection) setSelectedCollectionData(null);
+    }
+  }, [selectedCollection]);
+
+  // Load collection data when selected collection changes
+  useEffect(() => {
+    if (selectedCollection) {
+      console.log('Selected collection changed, loading data:', selectedCollection);
+      loadCollectionData(selectedCollection);
+    }
+  }, [selectedCollection, loadCollectionData]);
 
   const handleCollectionSelect = useCallback((id: number | null) => {
     console.log('handleCollectionSelect called with id:', id);
@@ -237,39 +317,63 @@ export default function MegaData({ params, searchParams }: PageProps) {
       return;
     }
 
-    setExternalDetails(null);
-
-    if (hasUnsavedChanges) {
-      if (window.confirm('You have unsaved changes. Are you sure you want to switch collections? Changes will be lost.')) {
-        if (id) {
-          router.push(`/megadata/${id}`, { scroll: false });
-        } else {
-          router.push('/megadata', { scroll: false });
-        }
-      }
-    } else {
+    const updateCollection = () => {
+      console.log('Updating collection to:', id);
+      setIsManualSelection(true);
+      setSelectedCollection(id);
       if (id) {
         router.push(`/megadata/${id}`, { scroll: false });
       } else {
         router.push('/megadata', { scroll: false });
       }
+    };
+
+    if (hasUnsavedChanges) {
+      if (window.confirm('You have unsaved changes. Are you sure you want to switch collections? Changes will be lost.')) {
+        updateCollection();
+      }
+    } else {
+      updateCollection();
     }
   }, [selectedCollection, hasUnsavedChanges, router]);
 
-  const loadCollectionData = useCallback(async (id: number | null) => {
-    if (!id) {
+  // Ensure collection data is loaded when selectedCollection changes
+  useEffect(() => {
+    console.log('Selected collection effect triggered:', selectedCollection);
+    if (selectedCollection === null) {
       setSelectedCollectionData(null);
+      setLoadedTokens([]);
+      setTotalTokens(null);
       return;
     }
-    try {
-      const collection = await megadataApi.getCollection(id);
-      if (id === selectedCollection) {
+
+    const loadData = async () => {
+      console.log('Loading data for collection:', selectedCollection);
+      setIsLoadingTokens(true);
+      try {
+        const [collection, tokensResponse] = await Promise.all([
+          megadataApi.getCollection(selectedCollection),
+          megadataApi.getTokens(selectedCollection, 1, TOKENS_PAGE_SIZE)
+        ]);
+
+        console.log('Loaded collection:', collection);
+        console.log('Loaded tokens:', tokensResponse);
+
         setSelectedCollectionData(collection);
+        setLoadedTokens(tokensResponse.tokens);
+        setTotalTokens(tokensResponse.total);
+        setCurrentPage(1);
+      } catch (error) {
+        console.error('Failed to load collection data:', error);
+        setSelectedCollectionData(null);
+        setLoadedTokens([]);
+        setTotalTokens(0);
+      } finally {
+        setIsLoadingTokens(false);
       }
-    } catch (error) {
-      console.error(`Failed to load collection data for ${id}`, error);
-      if (id === selectedCollection) setSelectedCollectionData(null);
-    }
+    };
+
+    loadData();
   }, [selectedCollection]);
 
   const loadModule = useCallback(async (id: number | null) => {
@@ -331,88 +435,6 @@ export default function MegaData({ params, searchParams }: PageProps) {
       loadTokens(selectedCollection, page);
     }
   }, [selectedCollection, loadTokens]);
-
-  const loadCollections = useCallback(async () => {
-    if (!walletAddress) return;
-    try {
-      console.log('Loading collections...');
-      const fetchedCollections = await megadataApi.getCollections();
-      console.log('Fetched collections:', fetchedCollections);
-      setCollections(fetchedCollections);
-    } catch (error) {
-      console.error("Failed to load collections", error);
-    }
-  }, [walletAddress]);
-
-  useEffect(() => {
-    if (walletAddress) {
-      loadCollections();
-    }
-  }, [walletAddress, loadCollections]);
-
-  useEffect(() => {
-    if (isInitialLoad && initialCollectionId && collections.length > 0 && selectedCollection !== initialCollectionId) {
-      const collectionExists = collections.some(c => c.id === initialCollectionId);
-      if (collectionExists) {
-        console.log(`Selecting initial collection: ${initialCollectionId}`);
-        handleCollectionSelect(initialCollectionId);
-      } else {
-        console.log(`Initial collection ${initialCollectionId} not found, selecting none.`);
-        handleCollectionSelect(null);
-      }
-      setIsInitialLoad(false);
-    }
-  }, [initialCollectionId, collections, selectedCollection, handleCollectionSelect, isInitialLoad]);
-
-  useEffect(() => {
-    if (selectedCollection === null) {
-      setSelectedCollectionData(null);
-      setLoadedTokens([]);
-      setTotalTokens(null);
-      setSelectedToken(null);
-      setMergedSchema(null);
-      setTokensToPublish(new Set());
-      setHasUnsavedChanges(false);
-      setCurrentPage(1);
-      setIsLoadingTokens(false);
-      return;
-    }
-    const loadData = async () => {
-      console.log(`Loading data for collection: ${selectedCollection}`);
-      setIsInitialLoad(true);
-      setSelectedToken(null);
-      setEditedProperties({});
-      setHasUnsavedChanges(false);
-      setMergedSchema(null);
-      await Promise.all([
-        loadCollectionData(selectedCollection),
-        loadModule(selectedCollection)
-      ]);
-
-      const currentCollectionData = collections.find(c => c.id === selectedCollection);
-
-      if (currentCollectionData?.type === 'external') {
-        setIsLoadingExternalDetails(true);
-        setExternalDetails(null);
-        try {
-          const details = await megadataApi.getExternalCollection(selectedCollection);
-          setExternalDetails(details);
-        } catch (error) {
-          console.error("Failed to fetch external collection details:", error);
-          toast.error("Failed to load external collection details.");
-          setExternalDetails(null);
-        } finally {
-          setIsLoadingExternalDetails(false);
-        }
-      } else {
-        setExternalDetails(null);
-      }
-
-      await loadTokens(selectedCollection, 1);
-      setIsInitialLoad(false);
-    };
-    loadData();
-  }, [selectedCollection, loadCollectionData, loadModule, loadTokens, collections]);
 
   useEffect(() => {
     console.log('[Effect selectedToken] Triggered. Selected token:', selectedToken?.id);
@@ -484,6 +506,10 @@ export default function MegaData({ params, searchParams }: PageProps) {
       selectTokenAction();
     }
     try {
+      if (!walletAddress) {
+        setTokenValidationError('Please connect your wallet to select a token.');
+        return;
+      }
       const validationResult = await megadataApi.validateToken(selectedCollection!, token.id);
       if (!validationResult.isValid) {
         setTokenValidationError(validationResult.error || 'Token validation failed. Edits may be limited.');
@@ -572,12 +598,16 @@ export default function MegaData({ params, searchParams }: PageProps) {
   }, [selectedToken, selectedCollection, hasUnsavedChanges, editedProperties, tokenValidationError]);
 
   const handleCreateTokenClick = useCallback(() => {
+    if (!walletAddress) {
+      toast.error("Please connect your wallet to create tokens.");
+      return;
+    }
     if (!selectedCollection || selectedCollectionData?.type === 'external' || selectedCollectionData?.is_published) {
       alert("Cannot create tokens for external or published collections.");
       return;
     }
     setIsCreateTokenDialogOpen(true);
-  }, [selectedCollection, selectedCollectionData]);
+  }, [selectedCollection, selectedCollectionData, walletAddress]);
 
   const handleCreateTokenDialogSubmit = useCallback(async (tokenId: string) => {
     if (!selectedCollection || !selectedCollectionData || selectedCollectionData.type === 'external' || selectedCollectionData.is_published) return;
@@ -669,54 +699,13 @@ export default function MegaData({ params, searchParams }: PageProps) {
     }
   }, [selectedCollection, walletAddress, loadedTokens, currentPage, selectedToken, handlePageChange, loadTokens]);
 
-  // Effect to handle URL changes
-  useEffect(() => {
-    if (initialCollectionId && collections.length > 0) {
-      const collectionExists = collections.some(c => c.id === initialCollectionId);
-      if (collectionExists && selectedCollection !== initialCollectionId) {
-        console.log(`Selecting collection from URL: ${initialCollectionId}`);
-        setSelectedToken(null);
-        setEditedProperties({});
-        setHasUnsavedChanges(false);
-        setLoadedTokens([]);
-        setTotalTokens(null);
-        setCurrentPage(1);
-        setMergedSchema(null);
-        setTokensToPublish(new Set());
-        setIsLoadingTokens(false);
-        setSelectedCollection(initialCollectionId);
-      } else if (!collectionExists) {
-        console.log(`Collection ${initialCollectionId} not found, selecting none.`);
-        setSelectedCollection(null);
-      }
-    } else if (!initialCollectionId && selectedCollection !== null) {
-      console.log('No collection in URL, selecting none.');
-      setSelectedCollection(null);
-    }
-  }, [initialCollectionId, collections, selectedCollection]);
-
-  if (!walletAddress) {
-    return (
-      <section className="flex items-center justify-center min-h-[calc(100vh-200px)] bg-gradient-to-br from-background to-blue-50">
-        <div className="container mx-auto max-w-md px-4 text-center">
-          <Card className="p-10 shadow-xl rounded-2xl bg-card/90 backdrop-blur-sm">
-            <Zap className="w-16 h-16 mx-auto mb-6 text-primary opacity-80" />
-            <h2 className="text-2xl font-semibold mb-4 text-primary font-serif">Connect Your Wallet</h2>
-            <p className="text-base text-muted-foreground mb-8">Please connect your wallet to access the MegaData management tools.</p>
-            <p className="text-xs text-muted-foreground mt-6">Wallet connection is required to interact with your collections.</p>
-          </Card>
-        </div>
-      </section>
-    );
-  }
-
   return (
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">
       <div className="container mx-auto max-w-screen-xl px-6 space-y-12">
         <div className="text-center max-w-4xl mx-auto">
           <h1 className="text-5xl md:text-6xl font-serif mb-5 text-primary font-bold">MegaData Editor</h1>
           <p className="text-xl text-muted-foreground">
-            Create, manage, and publish your on-chain token metadata with advanced features.
+            {walletAddress ? 'Create, manage, and publish your on-chain token metadata with advanced features.' : 'View on-chain token metadata.'}
           </p>
         </div>
 
@@ -732,10 +721,10 @@ export default function MegaData({ params, searchParams }: PageProps) {
                 </SelectTrigger>
                 <SelectContent className="rounded-lg">
                   <SelectGroup>
-                    <SelectLabel className="px-4 py-2 text-sm">My Collections</SelectLabel>
+                    <SelectLabel className="px-4 py-2 text-sm">Collections</SelectLabel>
                     {collections.length === 0 && (
                       <SelectItem value="loading" disabled className="px-4 py-2 italic">
-                        {walletAddress ? "Loading collections..." : "Connect wallet first"}
+                        Loading collections...
                       </SelectItem>
                     )}
                     {collections.map(collection => (
@@ -748,7 +737,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                 </SelectContent>
               </Select>
             </div>
-            {selectedCollection && (
+            {selectedCollection && walletAddress && (
               <div className="flex-grow flex items-center justify-start md:justify-end gap-3 flex-wrap">
                 <Button
                   onClick={handlePublishSelectedTokens}
@@ -814,9 +803,9 @@ export default function MegaData({ params, searchParams }: PageProps) {
                       onTokenClick={handleTokenClick}
                       onPageChange={handlePageChange}
                       tokensToPublish={tokensToPublish}
-                      onTogglePublishSelection={handleTogglePublishSelection}
-                      onCreateToken={handleCreateTokenClick}
-                      allowTokenCreation={selectedCollectionData?.type !== 'external' && !selectedCollectionData?.is_published}
+                      onTogglePublishSelection={walletAddress ? handleTogglePublishSelection : () => { }}
+                      onCreateToken={walletAddress ? handleCreateTokenClick : () => { }}
+                      allowTokenCreation={Boolean(walletAddress && selectedCollectionData?.type !== 'external' && !selectedCollectionData?.is_published)}
                     />
                   </div>
                 </Card>
@@ -871,7 +860,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                           </div>
                         )}
                         <TokenModules
-                          readonly={!!tokenValidationError}
+                          readonly={!!tokenValidationError || !walletAddress}
                           token={selectedToken}
                           onUpdateModules={async (newModules) => {
                             if (!selectedCollection || tokenValidationError || selectedToken.is_published) {
@@ -900,8 +889,8 @@ export default function MegaData({ params, searchParams }: PageProps) {
                           <MegadataForm
                             schema={mergedSchema ?? undefined}
                             value={editedProperties}
-                            onChange={setEditedProperties}
-                            readOnly={isSaving || isPublishing || !!tokenValidationError || selectedToken.is_published}
+                            onChange={walletAddress ? (value: Record<string, any>) => setEditedProperties(value) : () => { }}
+                            readOnly={!walletAddress || isSaving || isPublishing || !!tokenValidationError || selectedToken.is_published}
                           />
                           {!mergedSchema && (
                             <p className="text-sm text-muted-foreground mt-4 italic">No metadata schema defined by attached modules.</p>

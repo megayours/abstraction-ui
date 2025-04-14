@@ -104,15 +104,22 @@ const addAuthHeaders = (headers: HeadersInit = {}): HeadersInit => {
 
 export type GetCollectionsParams = {
   type?: 'internal' | 'external';
+  accountId?: string; // User's wallet address for filtering their collections
 };
 
 export async function getCollections(params?: GetCollectionsParams): Promise<Collection[]> {
-  let url = `${API_URL}/megadata/collections`; // Use let for mutable URL
+  const queryParams = new URLSearchParams();
   if (params?.type) {
-    url += `?type=${params.type}`; // Append type query parameter if present
+    queryParams.append('type', params.type);
   }
-  const response = await fetch(url, { // Use the potentially modified URL
-    headers: addAuthHeaders({ 'Content-Type': 'application/json' }) // Re-apply addAuthHeaders
+  if (params?.accountId) {
+    queryParams.append('account_id', params.accountId);
+  }
+  const queryString = queryParams.toString();
+  const url = `${API_URL}/megadata/collections${queryString ? `?${queryString}` : ''}`;
+  
+  const response = await fetch(url, {
+    headers: addAuthHeaders({ 'Content-Type': 'application/json' })
   });
   if (!response.ok) {
     throw new Error('Failed to fetch collections');
@@ -280,18 +287,6 @@ export async function getModule(id: string): Promise<Module> {
   });
   if (!response.ok) {
     throw new Error('Failed to fetch module');
-  }
-  return response.json();
-}
-
-export async function validateModuleData(moduleId: string, data: Record<string, any>): Promise<ValidationResult> {
-  const response = await fetch(`${API_URL}/modules/${moduleId}/validate`, {
-    method: 'POST',
-    headers: addAuthHeaders({ 'Content-Type': 'application/json' }), // Re-apply addAuthHeaders
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    throw new Error('Failed to validate data');
   }
   return response.json();
 }
