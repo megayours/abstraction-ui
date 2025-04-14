@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
 import { Copy, Globe, FileText, LinkIcon, Zap, AlertCircle } from 'lucide-react';
@@ -27,6 +27,12 @@ export function CompactUriDisplay({
 }: CompactUriDisplayProps) {
   const [selectedUriType, setSelectedUriType] = useState<UriType>('base');
 
+  useEffect(() => {
+    if (collection?.type === 'external') {
+      setSelectedUriType('gateway');
+    }
+  }, [collection]);
+
   const uris = useMemo(() => {
     if (!collection) return {};
 
@@ -46,13 +52,13 @@ export function CompactUriDisplay({
 
   const availableUriTypes = useMemo(() => {
     const types: { value: UriType; label: string; icon: React.ElementType }[] = [
-      { value: 'base', label: 'Base URI', icon: Globe },
+      { value: 'base', label: 'Collection Base URI', icon: Globe },
     ];
     if (uris.token) {
       types.push({ value: 'token', label: 'Token URI', icon: FileText });
     }
     if (uris.gateway) {
-      types.push({ value: 'gateway', label: 'Gateway URI', icon: LinkIcon });
+      types.push({ value: 'gateway', label: 'Extended URI', icon: LinkIcon });
     }
     return types;
   }, [uris]);
@@ -84,14 +90,14 @@ export function CompactUriDisplay({
     <div className="space-y-3">
       {collection?.type === 'external' && (
         <div className="text-xs border border-border/30 p-2.5 rounded-md bg-muted/40">
-          <p className="font-medium text-foreground mb-1.5 text-[11px] uppercase tracking-wider">External Status</p>
+          <p className="font-medium text-foreground mb-1.5 text-[11px] uppercase tracking-wider">Sync Status</p>
           {isLoadingExternalDetails ? (
             <span className="flex items-center text-muted-foreground">Loading...</span>
           ) : externalDetails ? (
             externalDetails.last_checked !== null ? (
               <span className="flex items-center text-muted-foreground">
                 <Zap className="h-3 w-3 mr-1.5 text-green-600 flex-shrink-0" />
-                Checked: {new Date(externalDetails.last_checked * 1000).toLocaleDateString()}
+                Last Synced: {new Date(externalDetails.last_checked * 1000).toLocaleString()}
               </span>
             ) : (
               <span className="flex items-center text-orange-600">
@@ -135,7 +141,7 @@ export function CompactUriDisplay({
              <Tooltip>
                <TooltipTrigger asChild>
                  <code className="font-mono text-muted-foreground flex-1 overflow-hidden text-ellipsis whitespace-nowrap cursor-default">
-                   {selectedUri ? selectedUri.replace(/^https?:\/\//, '') : 'N/A'}
+                   {selectedUri ? selectedUri.replace(/^https?:\/\//, '') : 'Select a Token'}
                  </code>
                </TooltipTrigger>
                <TooltipContent className="max-w-xs break-all">

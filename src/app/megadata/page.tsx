@@ -20,7 +20,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { toast } from 'sonner';
 import { CompactUriDisplay } from './components/CompactUriDisplay';
 
-const TOKENS_PAGE_SIZE = 11;
+const TOKENS_PAGE_SIZE = 15;
 
 const mergeSchemas = (modules: Module[]): Record<string, any> | null => {
   if (!modules || modules.length === 0) {
@@ -796,14 +796,14 @@ export default function MegaData({ params, searchParams }: PageProps) {
               </Card>
             </div>
 
-            <div className="grid lg:grid-cols-3 gap-10 min-h-[700px]">
-              <div className="lg:col-span-1 h-full flex flex-col">
-                <Card className="shadow-md rounded-xl border-border/50 bg-card/90 backdrop-blur-sm h-full flex flex-col">
+            <div className="grid lg:grid-cols-3 gap-10">
+              <div className="lg:col-span-1">
+                <Card className="shadow-md rounded-xl border-border/50 bg-card/90 backdrop-blur-sm h-[920px]">
                   <CardHeader className="border-b border-border/50 p-6">
                     <CardTitle className="text-xl text-primary font-medium">Tokens ({totalTokens ?? '...'})</CardTitle>
                     <CardDescription>Select a token below to view or edit.</CardDescription>
                   </CardHeader>
-                  <div className="flex-1 min-h-0 px-3">
+                  <div className="flex-1 h-[calc(800px-88px)]">
                     <TokenPageableList
                       items={loadedTokens}
                       totalItems={totalTokens ?? 0}
@@ -822,8 +822,8 @@ export default function MegaData({ params, searchParams }: PageProps) {
                 </Card>
               </div>
 
-              <div className="lg:col-span-2 h-full flex flex-col">
-                <Card className="shadow-md rounded-xl border-border/50 bg-card/90 backdrop-blur-sm h-full flex flex-col">
+              <div className="lg:col-span-2">
+                <Card className="shadow-md rounded-xl border-border/50 bg-card/90 backdrop-blur-sm">
                   <CardHeader className="border-b border-border/50 p-6">
                     <div className="flex items-center justify-between gap-4">
                       <div>

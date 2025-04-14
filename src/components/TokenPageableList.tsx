@@ -1,7 +1,7 @@
 import React from 'react';
 import { PageableList } from './PageableList';
 import { Button } from './ui/button';
-import { Plus, CheckSquare } from 'lucide-react';
+import { Plus, CheckSquare, Check } from 'lucide-react';
 import type { Token } from '@/lib/api/megadata';
 
 interface TokenPageableListProps {
@@ -71,13 +71,13 @@ export function TokenPageableList({
         <div className="flex items-center gap-2 min-w-0 flex-1">
           <div className="flex-1 min-w-0">
             <div className="font-medium truncate">{token.id}</div>
-            {token.is_published && (
-              <div className="text-xs text-muted-foreground">Published</div>
-            )}
           </div>
         </div>
 
-        <div className="flex items-center gap-1 ml-2">          
+        <div className="flex items-center gap-2 ml-2">          
+          {token.is_published && (
+            <Check className="h-4 w-4 text-muted-foreground" />
+          )}
           {isPublishable && (
             <input
               type="checkbox"
@@ -94,43 +94,50 @@ export function TokenPageableList({
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-3 pb-2 flex flex-wrap gap-2 items-center">
-        {onTogglePublishSelection && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleSelectAll}
-            className="h-7"
-          >
-            <CheckSquare className="h-4 w-4 mr-1.5" />
-            Select All
-          </Button>
-        )}
-        {onCreateToken && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={onCreateToken}
-            className="h-7"
-            disabled={!allowTokenCreation}
-            title={!allowTokenCreation ? "Cannot create tokens for external collections" : undefined}
-          >
-            <Plus className="h-4 w-4 mr-1.5" />
-            Create New
-          </Button>
-        )}
+      <div className="px-3 pb-3 flex flex-col gap-3 border-b border-border/50">
+        <div className="flex flex-wrap gap-2 items-center">
+          {onTogglePublishSelection && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={handleSelectAll}
+              className="h-7"
+            >
+              <CheckSquare className="h-4 w-4 mr-1.5" />
+              Select All
+            </Button>
+          )}
+          {onCreateToken && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={onCreateToken}
+              className="h-7"
+              disabled={!allowTokenCreation}
+              title={!allowTokenCreation ? "Cannot create tokens for external collections" : undefined}
+            >
+              <Plus className="h-4 w-4 mr-1.5" />
+              Create New
+            </Button>
+          )}
+        </div>
+        <div className="flex items-center justify-center">
+          <PageableList
+            items={items}
+            totalItems={totalItems}
+            currentPage={currentPage}
+            pageSize={pageSize}
+            isLoading={isLoading}
+            onPageChange={onPageChange}
+            renderItem={renderToken}
+            className={className}
+            estimateSize={() => 56}
+          />
+        </div>
       </div>
-      <PageableList
-        items={items}
-        totalItems={totalItems}
-        currentPage={currentPage}
-        pageSize={pageSize}
-        isLoading={isLoading}
-        onPageChange={onPageChange}
-        renderItem={renderToken}
-        className={className}
-        estimateSize={() => 56} // Reduced height of each token row
-      />
+      <div className="mt-2 flex-1 overflow-y-auto px-3">
+        {items.map((token, index) => renderToken(token, index))}
+      </div>
     </div>
   );
 } 
