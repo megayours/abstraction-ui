@@ -24,14 +24,12 @@ export default function ViewCollectionsPage() {
 
   useEffect(() => {
     const loadCollections = async () => {
-      if (!!walletAddress) {
-        setIsLoading(false);
-        return;
-      }
       setIsLoading(true);
       setError(null);
       try {
-        if (filter === 'owned' && walletAddress) {
+        if (filter === 'owned' && !walletAddress) {
+          setCollections([]);
+        } else if (filter === 'owned' && walletAddress) {
           const fetchedOwnedCollections = await megadataApi.getCollections({ accountId: walletAddress });
           setCollections(fetchedOwnedCollections);
         } else {
@@ -47,7 +45,7 @@ export default function ViewCollectionsPage() {
     };
 
     loadCollections();
-  }, [walletAddress]);
+  }, [walletAddress, filter]);
 
   const renderSkeleton = () => (
     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
