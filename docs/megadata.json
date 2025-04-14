@@ -1,20 +1,10 @@
 {
   "openapi": "3.0.0",
   "info": {
-    "title": "Megadata API",
-    "version": "1.0.0",
-    "description": "API for managing Megadata collections and tokens"
+    "title": "megadata-api",
+    "version": "0.0.1",
+    "description": "API for managing Megadata"
   },
-  "servers": [
-    {
-      "url": "https://megadata-api.testnet.megayours.com",
-      "description": "Testnet server"
-    },
-    {
-      "url": "http://localhost:3000",
-      "description": "Local development server"
-    }
-  ],
   "components": {
     "schemas": {
 
@@ -51,7 +41,9 @@
                     "type": "object",
                     "properties": {
                       "id": {
-                        "type": "number"
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
                       },
                       "name": {
                         "type": "string"
@@ -62,20 +54,18 @@
                       "is_published": {
                         "type": "boolean"
                       },
-                      "created_at": {
-                        "type": "number"
-                      },
-                      "updated_at": {
-                        "type": "number"
-                      },
                       "type": {
                         "type": "string"
                       },
-                      "modules": {
-                        "type": "array",
-                        "items": {
-                          "type": "string"
-                        }
+                      "created_at": {
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
+                      },
+                      "updated_at": {
+                        "type": "integer",
+                        "minimum": -2147483648,
+                        "maximum": 2147483647
                       }
                     },
                     "required": [
@@ -83,12 +73,29 @@
                       "name",
                       "account_id",
                       "is_published",
-                      "created_at",
-                      "updated_at",
                       "type",
-                      "modules"
+                      "created_at",
+                      "updated_at"
                     ]
                   }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
                 }
               }
             }
@@ -107,7 +114,9 @@
                 "type": "object",
                 "properties": {
                   "name": {
-                    "type": "string"
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 255
                   }
                 },
                 "required": [
@@ -126,7 +135,9 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
                     },
                     "name": {
                       "type": "string"
@@ -137,20 +148,18 @@
                     "is_published": {
                       "type": "boolean"
                     },
-                    "created_at": {
-                      "type": "number"
-                    },
-                    "updated_at": {
-                      "type": "number"
-                    },
                     "type": {
                       "type": "string"
                     },
-                    "modules": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                    "created_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "updated_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
                     }
                   },
                   "required": [
@@ -158,10 +167,283 @@
                     "name",
                     "account_id",
                     "is_published",
-                    "created_at",
-                    "updated_at",
                     "type",
-                    "modules"
+                    "created_at",
+                    "updated_at"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/megadata/external-collections": {
+      "post": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Create a new external collection",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "source": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "type": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "source",
+                  "id",
+                  "type"
+                ]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "External collection already exists",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "account_id": {
+                      "type": "string"
+                    },
+                    "is_published": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "updated_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "account_id",
+                    "is_published",
+                    "type",
+                    "created_at",
+                    "updated_at"
+                  ]
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "Created external collection",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "name": {
+                      "type": "string"
+                    },
+                    "account_id": {
+                      "type": "string"
+                    },
+                    "is_published": {
+                      "type": "boolean"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "created_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "updated_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "name",
+                    "account_id",
+                    "is_published",
+                    "type",
+                    "created_at",
+                    "updated_at"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/megadata/external-collections/{collection_id}": {
+      "get": {
+        "tags": [
+          "Collections"
+        ],
+        "summary": "Get an external collection by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "collection_id",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "External collection details",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "collection_id": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "source": {
+                      "type": "string"
+                    },
+                    "id": {
+                      "type": "string"
+                    },
+                    "type": {
+                      "type": "string"
+                    },
+                    "last_checked": {
+                      "type": "integer",
+                      "nullable": true,
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "created_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "updated_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    }
+                  },
+                  "required": [
+                    "collection_id",
+                    "source",
+                    "id",
+                    "type",
+                    "last_checked",
+                    "created_at",
+                    "updated_at"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "External collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }
@@ -195,7 +477,9 @@
                   "type": "object",
                   "properties": {
                     "id": {
-                      "type": "number"
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
                     },
                     "name": {
                       "type": "string"
@@ -206,20 +490,18 @@
                     "is_published": {
                       "type": "boolean"
                     },
-                    "created_at": {
-                      "type": "number"
-                    },
-                    "updated_at": {
-                      "type": "number"
-                    },
                     "type": {
                       "type": "string"
                     },
-                    "modules": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
+                    "created_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
+                    },
+                    "updated_at": {
+                      "type": "integer",
+                      "minimum": -2147483648,
+                      "maximum": 2147483647
                     }
                   },
                   "required": [
@@ -227,130 +509,45 @@
                     "name",
                     "account_id",
                     "is_published",
-                    "created_at",
-                    "updated_at",
                     "type",
-                    "modules"
+                    "created_at",
+                    "updated_at"
                   ]
                 }
               }
             }
-          }
-        }
-      },
-      "put": {
-        "tags": [
-          "Collections"
-        ],
-        "summary": "Update a collection",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "collection_id",
-            "in": "path"
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "name": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "name"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Updated collection",
+          },
+          "401": {
+            "description": "Unauthorized",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "name": {
+                    "error": {
                       "type": "string"
-                    },
-                    "account_id": {
-                      "type": "string"
-                    },
-                    "is_published": {
-                      "type": "boolean"
-                    },
-                    "created_at": {
-                      "type": "number"
-                    },
-                    "updated_at": {
-                      "type": "number"
-                    },
-                    "type": {
-                      "type": "string"
-                    },
-                    "modules": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
                     }
                   },
                   "required": [
-                    "id",
-                    "name",
-                    "account_id",
-                    "is_published",
-                    "created_at",
-                    "updated_at",
-                    "type",
-                    "modules"
+                    "error"
                   ]
                 }
               }
             }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Collections"
-        ],
-        "summary": "Delete a collection",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "collection_id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Collection deleted",
+          },
+          "404": {
+            "description": "Collection not found",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "error": {
+                      "type": "string"
                     }
                   },
                   "required": [
-                    "success"
+                    "error"
                   ]
                 }
               }
@@ -413,6 +610,42 @@
                 }
               }
             }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -434,7 +667,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "default": "1"
             },
             "required": false,
             "name": "page",
@@ -442,7 +676,8 @@
           },
           {
             "schema": {
-              "type": "string"
+              "type": "string",
+              "default": "20"
             },
             "required": false,
             "name": "limit",
@@ -516,6 +751,78 @@
                     "total",
                     "page",
                     "limit"
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }
@@ -623,6 +930,96 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Collection not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Operation not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
           }
         }
       }
@@ -695,6 +1092,60 @@
                     "created_at",
                     "updated_at",
                     "modules"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Token not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }
@@ -800,46 +1251,92 @@
                 }
               }
             }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Tokens"
-        ],
-        "summary": "Delete a token",
-        "parameters": [
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "collection_id",
-            "in": "path"
           },
-          {
-            "schema": {
-              "type": "string"
-            },
-            "required": true,
-            "name": "token_id",
-            "in": "path"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Token deleted",
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "success": {
-                      "type": "boolean"
+                    "error": {
+                      "type": "string"
                     }
                   },
                   "required": [
-                    "success"
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Token not found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "405": {
+            "description": "Operation not allowed",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
                   ]
                 }
               }
@@ -874,7 +1371,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Token permission validation result",
+            "description": "Validation result",
             "content": {
               "application/json": {
                 "schema": {
@@ -894,8 +1391,44 @@
               }
             }
           },
+          "400": {
+            "description": "Invalid request parameters",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
           "401": {
             "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Access denied",
             "content": {
               "application/json": {
                 "schema": {
@@ -933,32 +1466,30 @@
         }
       }
     },
-    "/megadata/external-collections": {
+    "/megahub/upload-file": {
       "post": {
         "tags": [
-          "External Collections"
+          "File Upload"
         ],
-        "summary": "Create a new external collection",
+        "summary": "Upload a file to the abstraction chain",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
                 "type": "object",
                 "properties": {
-                  "source": {
-                    "type": "string"
+                  "file": {
+                    "type": "string",
+                    "description": "Base64 encoded file content"
                   },
-                  "id": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "type": "string"
+                  "contentType": {
+                    "type": "string",
+                    "description": "MIME type of the file"
                   }
                 },
                 "required": [
-                  "source",
-                  "id",
-                  "type"
+                  "file",
+                  "contentType"
                 ]
               }
             }
@@ -966,299 +1497,7 @@
         },
         "responses": {
           "201": {
-            "description": "Created external collection",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "number"
-                    },
-                    "name": {
-                      "type": "string"
-                    },
-                    "account_id": {
-                      "type": "string"
-                    },
-                    "is_published": {
-                      "type": "boolean"
-                    },
-                    "created_at": {
-                      "type": "number"
-                    },
-                    "updated_at": {
-                      "type": "number"
-                    },
-                    "type": {
-                      "type": "string"
-                    },
-                    "modules": {
-                      "type": "array",
-                      "items": {
-                        "type": "string"
-                      }
-                    },
-                    "external_details": {
-                      "type": "object",
-                      "properties": {
-                        "source": {
-                          "type": "string"
-                        },
-                        "id": {
-                          "type": "string"
-                        },
-                        "type": {
-                          "type": "string"
-                        },
-                        "last_checked": {
-                          "type": "number",
-                          "nullable": true
-                        }
-                      },
-                      "required": [
-                        "source",
-                        "id",
-                        "type",
-                        "last_checked"
-                      ]
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "name",
-                    "account_id",
-                    "is_published",
-                    "created_at",
-                    "updated_at",
-                    "type",
-                    "modules",
-                    "external_details"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts": {
-      "get": {
-        "tags": [
-          "account"
-        ],
-        "responses": {
-          "200": {
-            "description": "List of all accounts",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "type": "object",
-                    "properties": {
-                      "id": {
-                        "type": "string"
-                      },
-                      "type": {
-                        "type": "string"
-                      },
-                      "created_at": {
-                        "type": "number"
-                      },
-                      "updated_at": {
-                        "type": "number"
-                      }
-                    },
-                    "required": [
-                      "id",
-                      "type",
-                      "created_at",
-                      "updated_at"
-                    ]
-                  }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "account"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "id": {
-                    "type": "string"
-                  },
-                  "type": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "id",
-                  "type"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Account created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "type": "string"
-                    },
-                    "created_at": {
-                      "type": "number"
-                    },
-                    "updated_at": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "type",
-                    "created_at",
-                    "updated_at"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/accounts/{id}": {
-      "get": {
-        "tags": [
-          "account"
-        ],
-        "responses": {
-          "200": {
-            "description": "Account details",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "id": {
-                      "type": "string"
-                    },
-                    "type": {
-                      "type": "string"
-                    },
-                    "created_at": {
-                      "type": "number"
-                    },
-                    "updated_at": {
-                      "type": "number"
-                    }
-                  },
-                  "required": [
-                    "id",
-                    "type",
-                    "created_at",
-                    "updated_at"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Account not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "account"
-        ],
-        "responses": {
-          "200": {
-            "description": "Account deleted successfully",
+            "description": "File uploaded successfully",
             "content": {
               "application/json": {
                 "schema": {
@@ -1266,28 +1505,15 @@
                   "properties": {
                     "success": {
                       "type": "boolean"
+                    },
+                    "hash": {
+                      "type": "string",
+                      "description": "File hash"
                     }
                   },
                   "required": [
-                    "success"
-                  ]
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Account not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
+                    "success",
+                    "hash"
                   ]
                 }
               }
@@ -1317,11 +1543,12 @@
     "/modules": {
       "get": {
         "tags": [
-          "modules"
+          "Modules"
         ],
+        "summary": "Get all modules",
         "responses": {
           "200": {
-            "description": "List of all modules",
+            "description": "List of modules",
             "content": {
               "application/json": {
                 "schema": {
@@ -1338,46 +1565,26 @@
                       "description": {
                         "type": "string"
                       },
-                      "schema": {
-                        "type": "object",
-                        "additionalProperties": {
-                          "nullable": true
-                        }
+                      "version": {
+                        "type": "string"
                       },
-                      "created_at": {
-                        "type": "number"
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time"
                       },
-                      "updated_at": {
-                        "type": "number"
+                      "updatedAt": {
+                        "type": "string",
+                        "format": "date-time"
                       }
                     },
                     "required": [
                       "id",
                       "name",
-                      "description",
-                      "schema",
-                      "created_at",
-                      "updated_at"
+                      "version",
+                      "createdAt",
+                      "updatedAt"
                     ]
                   }
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
                 }
               }
             }
@@ -1388,7 +1595,18 @@
     "/modules/:id": {
       "get": {
         "tags": [
-          "modules"
+          "Modules"
+        ],
+        "summary": "Get module by ID",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "id",
+            "in": "path"
+          }
         ],
         "responses": {
           "200": {
@@ -1407,26 +1625,24 @@
                     "description": {
                       "type": "string"
                     },
-                    "schema": {
-                      "type": "object",
-                      "additionalProperties": {
-                        "nullable": true
-                      }
+                    "version": {
+                      "type": "string"
                     },
-                    "created_at": {
-                      "type": "number"
+                    "createdAt": {
+                      "type": "string",
+                      "format": "date-time"
                     },
-                    "updated_at": {
-                      "type": "number"
+                    "updatedAt": {
+                      "type": "string",
+                      "format": "date-time"
                     }
                   },
                   "required": [
                     "id",
                     "name",
-                    "description",
-                    "schema",
-                    "created_at",
-                    "updated_at"
+                    "version",
+                    "createdAt",
+                    "updatedAt"
                   ]
                 }
               }
@@ -1434,114 +1650,6 @@
           },
           "404": {
             "description": "Module not found",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/megahub/upload-file": {
-      "post": {
-        "tags": [
-          "megahub"
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "file": {
-                    "type": "string",
-                    "description": "Base64 encoded file"
-                  },
-                  "contentType": {
-                    "type": "string"
-                  },
-                  "account": {
-                    "type": "string"
-                  }
-                },
-                "required": [
-                  "file",
-                  "contentType",
-                  "account"
-                ]
-              }
-            }
-          }
-        },
-        "responses": {
-          "201": {
-            "description": "Collection created successfully",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "hash": {
-                      "type": "string",
-                      "description": "Hash of the uploaded file in hex format"
-                    }
-                  },
-                  "required": [
-                    "hash"
-                  ]
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Invalid request",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "object",
-                  "properties": {
-                    "error": {
-                      "type": "string"
-                    }
-                  },
-                  "required": [
-                    "error"
-                  ]
-                }
-              }
-            }
-          },
-          "500": {
-            "description": "Internal server error",
             "content": {
               "application/json": {
                 "schema": {

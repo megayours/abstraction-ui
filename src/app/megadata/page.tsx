@@ -9,7 +9,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { TokenPageableList } from '@/components/TokenPageableList';
 import MegadataForm from './components/MegadataForm';
 import * as megadataApi from '@/lib/api/megadata';
-import type { Collection, Token, Module } from '@/lib/api/megadata';
+import type { Collection, Token, Module, ExternalCollectionDetails } from '@/lib/api/megadata';
 import { config } from '@/lib/config';
 import { CreateTokenDialog } from '@/components/CreateTokenDialog';
 import { useWeb3Auth } from '@/providers/web3auth-provider';
@@ -18,6 +18,7 @@ import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrig
 import { SPECIAL_MODULES } from '@/lib/constants';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
+import { CompactUriDisplay } from './components/CompactUriDisplay';
 
 const TOKENS_PAGE_SIZE = 11;
 
@@ -220,6 +221,8 @@ export default function MegaData({ params, searchParams }: PageProps) {
   const [isCreateTokenDialogOpen, setIsCreateTokenDialogOpen] = useState(false);
   const [tokenValidationError, setTokenValidationError] = useState<string | null>(null);
   const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [externalDetails, setExternalDetails] = useState<ExternalCollectionDetails | null>(null);
+  const [isLoadingExternalDetails, setIsLoadingExternalDetails] = useState<boolean>(false);
 
   useEffect(() => {
     Promise.all([params, searchParams]).then(([paramsResult, searchParamsResult]) => {
@@ -233,6 +236,8 @@ export default function MegaData({ params, searchParams }: PageProps) {
       console.log('Same collection selected, returning early');
       return;
     }
+
+    setExternalDetails(null);
 
     if (hasUnsavedChanges) {
       if (window.confirm('You have unsaved changes. Are you sure you want to switch collections? Changes will be lost.')) {
@@ -374,7 +379,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
     }
     const loadData = async () => {
       console.log(`Loading data for collection: ${selectedCollection}`);
-      setIsLoadingTokens(true);
+      setIsInitialLoad(true);
       setSelectedToken(null);
       setEditedProperties({});
       setHasUnsavedChanges(false);
@@ -383,10 +388,31 @@ export default function MegaData({ params, searchParams }: PageProps) {
         loadCollectionData(selectedCollection),
         loadModule(selectedCollection)
       ]);
+
+      const currentCollectionData = collections.find(c => c.id === selectedCollection);
+
+      if (currentCollectionData?.type === 'external') {
+        setIsLoadingExternalDetails(true);
+        setExternalDetails(null);
+        try {
+          const details = await megadataApi.getExternalCollection(selectedCollection);
+          setExternalDetails(details);
+        } catch (error) {
+          console.error("Failed to fetch external collection details:", error);
+          toast.error("Failed to load external collection details.");
+          setExternalDetails(null);
+        } finally {
+          setIsLoadingExternalDetails(false);
+        }
+      } else {
+        setExternalDetails(null);
+      }
+
       await loadTokens(selectedCollection, 1);
+      setIsInitialLoad(false);
     };
     loadData();
-  }, [selectedCollection, loadCollectionData, loadModule, loadTokens]);
+  }, [selectedCollection, loadCollectionData, loadModule, loadTokens, collections]);
 
   useEffect(() => {
     console.log('[Effect selectedToken] Triggered. Selected token:', selectedToken?.id);
@@ -694,8 +720,8 @@ export default function MegaData({ params, searchParams }: PageProps) {
           </p>
         </div>
 
-        <Card className="p-6 shadow-lg rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm sticky top-4 z-10">
-          <div className="flex flex-col md:flex-row items-center gap-6">
+        <Card className="p-4 shadow-lg rounded-xl border border-border/50 bg-card/80 backdrop-blur-sm sticky top-4 z-10">
+          <div className="flex flex-col md:flex-row items-center gap-4">
             <div className="flex-shrink-0 w-full md:w-auto">
               <Select
                 onValueChange={(value) => handleCollectionSelect(value ? Number(value) : null)}
@@ -758,122 +784,14 @@ export default function MegaData({ params, searchParams }: PageProps) {
         {selectedCollection && (
           <div className="space-y-10">
             <div className="grid md:grid-cols-1 gap-10">
-              {/* <Card className="shadow-md rounded-xl border-border/50 bg-card/90 backdrop-blur-sm">
-                <CardHeader className="border-b border-border/50 p-6">
-                  <CardTitle className="text-xl text-primary font-medium">Import / Export</CardTitle>
-                  <CardDescription>Download data for offline editing or import changes.</CardDescription>
-                </CardHeader>
-                <CardContent className="p-6">
-                  <ImportExportTemplate
-                    collectionId={selectedCollection.toString()}
-                    onImport={handleImportData}
-                    items={loadedTokens.map(token => ({
-                      collection: selectedCollection.toString(),
-                      tokenId: token.id,
-                      data: token.data
-                    }))}
-                    published={selectedCollectionData?.is_published || false}
-                    allowImport={selectedCollectionData?.type !== 'external' && !selectedCollectionData?.is_published}
+              <Card className="shadow-sm rounded-xl border-border/50 bg-card/90 backdrop-blur-sm">
+                <CardContent className="p-3">
+                  <CompactUriDisplay
+                    collection={selectedCollectionData}
+                    selectedToken={selectedToken}
+                    externalDetails={externalDetails}
+                    isLoadingExternalDetails={isLoadingExternalDetails}
                   />
-                </CardContent>
-              </Card> */}
-
-              <Card className="shadow-md rounded-xl border-border/50 bg-card/90 backdrop-blur-sm">
-                <CardHeader className="border-b border-border/50 p-6">
-                  <CardTitle className="text-xl text-primary font-medium">Collection URI</CardTitle>
-                  <CardDescription>
-                    {selectedCollectionData?.is_published
-                      ? "Access published metadata via these URIs."
-                      : "URIs will be active once published. Preview:"}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="px-6 space-y-2">
-                  <p className="text-sm text-muted-foreground mb-2">Base URI:</p>
-                  <div className="flex items-center gap-3 p-3.5 bg-muted/40 rounded-lg text-sm border border-border/30">
-                    <Globe className="h-5 w-5 text-muted-foreground shrink-0" />
-                    <code className="font-mono text-muted-foreground flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                      {config.megaRouterUri}/megadata/
-                      <span className={`font-semibold ${selectedCollectionData?.is_published ? 'text-primary' : 'text-muted-foreground/70'}`}>
-                        {selectedCollection}
-                      </span>/
-                    </code>
-                    <Button
-                      variant="ghost" size="icon" className="h-7 w-7 shrink-0 relative z-10 pointer-events-auto cursor-pointer"
-                      onClick={(_) => {
-                        const uri = `${config.megaRouterUri}/megadata/${selectedCollection}/`;
-                        navigator.clipboard.writeText(uri)
-                          .then(() => toast.success('Base URI copied to clipboard!'))
-                          .catch(err => {
-                            console.error('Failed to copy base URI:', err);
-                            toast.error('Failed to copy base URI.');
-                          });
-                      }}
-                      title="Copy Base URI"
-                    >
-                      <Copy className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  {selectedToken && (
-                    <div className="mt-6">
-                    <p className="text-sm text-muted-foreground mb-2">Token URI:</p>
-                    <div className="flex items-center gap-3 p-3.5 bg-muted/40 rounded-lg text-sm border border-border/30">
-                      <FileText className="h-5 w-5 text-muted-foreground shrink-0" />
-                      <code className="font-mono text-muted-foreground flex-1 overflow-hidden text-ellipsis whitespace-nowrap">
-                        {config.megaRouterUri}/megadata/
-                        <span className={`font-semibold ${selectedCollectionData?.is_published ? 'text-primary' : 'text-muted-foreground/70'}`}>
-                          {selectedCollection}
-                        </span>/
-                        <span className={`font-semibold ${selectedCollectionData?.is_published ? 'text-accent-foreground' : 'text-muted-foreground/70'}`}>
-                          {selectedToken.id}
-                        </span>
-                      </code>
-                      <Button
-                        variant="ghost" size="icon" className="h-7 w-7 shrink-0 relative z-10 pointer-events-auto cursor-pointer"
-                        onClick={(_) => {
-                          const uri = `${config.megaRouterUri}/megadata/${selectedCollection}/${selectedToken.id}`;
-                          navigator.clipboard.writeText(uri)
-                            .then(() => toast.success('Full Token URI copied to clipboard!'))
-                            .catch(err => {
-                              console.error('Failed to copy token URI:', err);
-                              toast.error('Failed to copy token URI.');
-                            });
-                        }}
-                        title="Copy Full Token URI"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </Button>
-                      </div>
-                    </div>
-                  )}
-                  {selectedToken && selectedToken.modules.includes(SPECIAL_MODULES.EXTENDING_METADATA) && selectedToken.data?.uri && (
-                    <div className="pt-4 mt-4 border-t border-border/30">
-                      <p className="text-xs text-muted-foreground mb-2">MegaRouter Gateway (Extended Metadata):</p>
-                      <div className="flex items-center gap-3 p-3.5 bg-muted/40 rounded-lg text-sm border border-border/30">
-                        <LinkIcon className="h-5 w-5 text-muted-foreground shrink-0" />
-                        <code className="font-mono text-muted-foreground flex-1 overflow-hidden text-ellipsis whitespace-nowrap" title={selectedToken.data.uri}>
-                          {config.megaRouterUri}/ext/
-                          <span className={`font-semibold ${selectedCollectionData?.is_published ? 'text-accent-foreground' : 'text-muted-foreground/70'}`}>
-                            {selectedToken.data.uri}
-                          </span>
-                        </code>
-                        <Button
-                          variant="ghost" size="icon" className="h-7 w-7 shrink-0 relative z-10 pointer-events-auto cursor-pointer"
-                          onClick={(_) => {
-                            const uri = `${config.megaRouterUri}/ext/${selectedToken.data.uri}`;
-                            navigator.clipboard.writeText(uri)
-                              .then(() => toast.success('Gateway URI copied to clipboard!'))
-                              .catch(err => {
-                                console.error('Failed to copy gateway URI:', err);
-                                toast.error('Failed to copy gateway URI.');
-                              });
-                          }}
-                          title="Copy Gateway URI"
-                        >
-                          <Copy className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  )}
                 </CardContent>
               </Card>
             </div>
