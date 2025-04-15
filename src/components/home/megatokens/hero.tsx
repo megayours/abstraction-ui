@@ -103,7 +103,7 @@ export default function HeroSection() {
                                         className="px-5 text-base"
                                     >
                                         <Link href="#user-journey">
-                                            <span className="text-nowrap">Launch Collection</span>
+                                            <span className="text-nowrap">Launch a Collection</span>
                                         </Link>
                                     </Button>
                                 </div>
