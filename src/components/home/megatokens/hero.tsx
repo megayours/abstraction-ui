@@ -71,7 +71,7 @@ export default function HeroSection() {
                                 lg:absolute lg:right-0 lg:-top-20">
                                 <Image
                                     className="h-40 w-40 object-cover rounded-full 
-                                    lg:h-[450px] lg:w-[450px] lg:object-contain dark:mix-blend-lighten 
+                                    lg:h-[500px] lg:w-[500px] lg:mt-10 lg:object-contain dark:mix-blend-lighten 
                                     dark:invert-0 [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
                                     src="/images/homepage.jpg"
                                     alt="Abstract Object"

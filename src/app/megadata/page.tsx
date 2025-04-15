@@ -807,8 +807,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                             }
                           }}
                         />
-                        <div className="rounded-lg border border-border bg-card p-6 shadow-sm">
-                          <h4 className="text-base font-medium text-primary mb-4">Metadata Properties</h4>
+                        <>
                           <MegadataForm
                             schema={mergedSchema ?? undefined}
                             value={editedProperties}
@@ -818,7 +817,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                           {!mergedSchema && (
                             <p className="text-sm text-muted-foreground mt-4 italic">No metadata schema defined by attached modules.</p>
                           )}
-                        </div>
+                        </>
                       </>
                     ) : (
                       <div className="flex flex-col items-center justify-center h-full text-center text-muted-foreground p-10 rounded-lg border-2 border-dashed border-border/40 bg-background/30">

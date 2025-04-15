@@ -33,8 +33,9 @@ export default function ViewCollectionsPage() {
           const fetchedOwnedCollections = await megadataApi.getCollections({ accountId: walletAddress });
           setCollections(fetchedOwnedCollections);
         } else {
-          const fetchedExternalCollections = await megadataApi.getCollections();
-          setCollections(fetchedExternalCollections);
+          const fetchedExternalCollections = await megadataApi.getCollections({ type: 'external' });
+          const fetchedOwnedCollections = walletAddress ? await megadataApi.getCollections({ accountId: walletAddress }) : [];
+          setCollections([...new Set([...fetchedOwnedCollections, ...fetchedExternalCollections])]);
         }
       } catch (err) {
         console.error("Failed to load collections:", err);

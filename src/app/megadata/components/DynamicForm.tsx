@@ -26,6 +26,15 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
     onChange({ ...value, [field]: newValue });
   }, [value, onChange]);
 
+  // Utility to humanize property names (e.g., external_url -> External URL)
+  function humanize(str: string): string {
+    return str
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, (c) => c.toUpperCase())
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+
   const renderField = (field: string, fieldSchema: any) => {
     const isRequired = schema.required?.includes(field);
     const label = fieldSchema.title || field;
@@ -246,7 +255,8 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
         ? getNestedSchema(schema, pathPrefix)?.required?.includes(field)
         : schema.required?.includes(field);
         
-    const label = fieldSchema.title || field;
+    // Use humanized label
+    const label = fieldSchema.title || humanize(field);
     const id = `form-field-${currentPath.replace(/\W/g, '_')}`;
     const currentValue = getNestedValue(value, currentPath);
 
@@ -255,7 +265,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
       const xUpload = fieldSchema['x-upload'];
       return (
         <div key={currentPath} className="mb-6">
-          <Label htmlFor={id} className="mb-2 block">
+          <Label htmlFor={id} className="mb-2 block text-base font-semibold text-primary">
             {label}
             {isRequired && <span className="text-red-500 ml-1">*</span>}
           </Label>
@@ -267,7 +277,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
               onChange={e => handleNestedChange(currentPath, e.target.value)}
               readOnly={readOnly}
               placeholder={fieldSchema.description || xUpload.description || `Enter or upload ${label}`}
-              className="flex-grow"
+              className="flex-grow focus:ring-primary/30 transition-colors"
             />
             {!readOnly && (
               <Button
@@ -357,6 +367,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
                         }}
                         readOnly={readOnly}
                         placeholder={fieldSchema.description || `Enter ${label}`}
+                        className="focus:ring-primary/30 transition-colors"
                     />
                     {fieldSchema.description && !fieldSchema.placeholder && (
                         <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
@@ -406,9 +417,31 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
     switch (fieldSchema.type) {
       case 'string':
         const useTextarea = fieldSchema.format === 'textarea' || field.toLowerCase().includes('description');
+        // Determine placeholder
+        let placeholder = '';
+        if (
+          fieldSchema.placeholder &&
+          fieldSchema.placeholder !== label &&
+          fieldSchema.placeholder !== fieldSchema.description
+        ) {
+          placeholder = fieldSchema.placeholder;
+        } else if (
+          fieldSchema.example &&
+          fieldSchema.example !== label &&
+          fieldSchema.example !== fieldSchema.description
+        ) {
+          placeholder = fieldSchema.example;
+        } else if (
+          fieldSchema.description &&
+          fieldSchema.description !== label
+        ) {
+          placeholder = '';
+        } else {
+          placeholder = '';
+        }
         return (
-          <div key={currentPath} className="mb-6">
-            <Label htmlFor={id} className="mb-2 block">
+          <div key={currentPath} className="mb-8">
+            <Label htmlFor={id} className="mb-2 block text-base font-semibold text-primary">
               {label}
               {isRequired && <span className="text-red-500 ml-1">*</span>}
             </Label>
@@ -419,22 +452,22 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
                 value={currentValue || ''}
                 onChange={(e) => handleNestedChange(currentPath, e.target.value)}
                 readOnly={readOnly}
-                placeholder={fieldSchema.description || `Enter ${label}`}
+                placeholder={placeholder}
                 rows={3}
               />
             ) : (
               <Input
                 className="bg-background/10 border-border focus:border-primary/50"
                 id={id}
-                type={fieldSchema.format === 'url' ? 'url' : 'text'} 
+                type={fieldSchema.format === 'url' ? 'url' : 'text'}
                 value={currentValue || ''}
                 onChange={(e) => handleNestedChange(currentPath, e.target.value)}
                 readOnly={readOnly}
-                placeholder={fieldSchema.description || `Enter ${label}`}
+                placeholder={placeholder}
               />
             )}
-            {fieldSchema.description && !fieldSchema.placeholder && (
-               <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
+            {fieldSchema.description && (
+              <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
             )}
           </div>
         );
@@ -453,6 +486,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
               onChange={(e) => handleNestedChange(currentPath, e.target.value === '' ? undefined : Number(e.target.value))}
               readOnly={readOnly}
               placeholder={fieldSchema.description || `Enter ${label}`}
+              className="focus:ring-primary/30 transition-colors"
             />
              {fieldSchema.description && !fieldSchema.placeholder && (
                <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
@@ -615,10 +649,21 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
   };
 
   return (
-    <div className="space-y-6 p-4"> {/* Add padding to the main container */}
-      {Object.keys(schema.properties || {}).map((field) => (
-        renderFieldRevised(field, schema.properties[field])
-      ))}
+    <div className="max-w-2xl mx-auto bg-white/80 border border-border/40 rounded-2xl shadow-lg p-8 space-y-10">
+      {/* Section Title */}
+      <div className="mb-8 text-center">
+        <h2 className="text-3xl font-serif font-bold text-primary mb-2 tracking-tight">Metadata Properties</h2>
+        <p className="text-lg text-muted-foreground">Define the properties and metadata for your token</p>
+      </div>
+      <div className="space-y-8">
+        {Object.keys(schema.properties || {}).map((field, idx, arr) => (
+          <div key={field} className="relative">
+            {renderFieldRevised(field, schema.properties[field])}
+            {/* Divider between major fields, except last */}
+            {idx < arr.length - 1 && <div className="absolute left-0 right-0 -bottom-4 h-px bg-border/30" />}
+          </div>
+        ))}
+      </div>
 
       {/* File Picker Dialog */}
       <FilePickerDialog
