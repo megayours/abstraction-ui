@@ -516,7 +516,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
   }, [loadedTokens]);
 
   const handlePublishSelectedTokens = useCallback(async () => {
-    if (!selectedCollection || tokensToPublish.size === 0 || !walletAddress || selectedCollectionData?.is_published) return;
+    if (!selectedCollection || tokensToPublish.size === 0 || !walletAddress) return;
     if (!window.confirm(`Publish ${tokensToPublish.size} selected token(s)? This cannot be undone.`)) return;
     setIsPublishing(true);
     try {
@@ -664,7 +664,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
               <div className="flex-grow flex items-center justify-start md:justify-end gap-3 flex-wrap">
                 <Button
                   onClick={handlePublishSelectedTokens}
-                  disabled={tokensToPublish.size === 0 || isPublishing || selectedCollectionData?.is_published}
+                  disabled={tokensToPublish.size === 0 || isPublishing}
                   title={selectedCollectionData?.is_published ? "Collection published" : "Publish selected tokens"}
                   variant="outline"
                   className="h-11 rounded-lg border-primary/50 text-primary hover:bg-primary/5"
