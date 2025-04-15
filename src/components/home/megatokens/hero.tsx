@@ -85,14 +85,14 @@ export default function HeroSection() {
                                 <h1 className="font-serif max-w-2xl text-balance text-4xl font-medium md:text-5xl lg:mt-16 xl:text-7xl">
                                     Megatokens
                                 </h1>
-                                <p className="mt-2 md:mt-4 max-w-2xl text-pretty text-base md:text-lg">
-                                    Attach PDFs, animations, videos, GIFs, and 3D models to your tokens. Add custom 
-                                    business logic to create interactive digital experiences that evolve over time.
+                                <p className="mt-6 md:mt-6 font-bold">Bring tokens to life.</p>
+                                <p className="mt-1 md:mt-2 max-w-2xl text-pretty text-base md:text-lg">
+                                    Attach rich media — PDFs, videos, 3D models, GIFs, animations — to tokens and define how they behave over time. 
+                                    Create interactive, evolving experiences with custom business logic.
                                 </p>
-
-                                <p className="mt-2 md:mt-4 max-w-2xl text-pretty text-base md:text-lg">
-                                    Our fully on-chain programmable tokens work with both new and existing collections, 
-                                    including those using IPFS, Arweave, or other off-chain storage.
+                                <p className="mt-4 md:mt-4 font-bold">Fully on-chain. Instantly upgradeable</p>
+                                <p className="mt-1 md:mt-2 max-w-2xl text-pretty text-base md:text-lg">
+                                    Our smart token infrastructure works with both new and existing collections — even those using IPFS, Arweave, or other off-chain storage solutions.
                                 </p>
 
                                 <div className="mt-4 md:mt-8 flex flex-col items-center justify-center gap-2 sm:flex-row lg:justify-start">

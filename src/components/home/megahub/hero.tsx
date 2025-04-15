@@ -9,10 +9,10 @@ export default function HeroSection() {
                 <div className="relative z-10">
                     <div className="mx-auto max-w-4xl text-center">
                         <h1 className="font-serif text-balance text-4xl font-medium md:text-5xl xl:text-7xl">
-                            Megahub: The On-chain Logic Marketplace
+                            Megahub: The On-Chain Logic Marketplace
                         </h1>
                         <p className="mt-4 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">
-                            Create, share, and discover powerful token modules. Join a thriving ecosystem of developers building the future of tokenization.
+                            Create, upgrade and discover powerful token modules. Join a thriving ecosystem of developers and creators building the future of tokenization.
                         </p>
                         <div className="mt-8 flex items-center justify-center gap-x-6">
                             <Link href={links.megahub}>

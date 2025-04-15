@@ -14,7 +14,7 @@ export default function ShareSection() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Modular Integration</h3>
-                  <p className="text-gray-600">Seamlessly integrate modules with your Megatokens for enhanced functionality</p>
+                  <p className="text-gray-600">Easily plug modules into your MegaTokens to unlock enhanced features and functionality — no friction, no rewrites.</p>
                 </div>
               </div>
             </Card>
@@ -36,10 +36,10 @@ export default function ShareSection() {
             </h2>
             <div className="space-y-6 text-gray-600">
               <p className="text-lg">
-                Megatokens can be supercharged by attaching modules from our ecosystem. Modules seamlessly integrate with Megatokens, ensuring reliable and secure token behavior.
+                Add extensible features to your tokens with plug-and-play modules from our ecosystem. Each module integrates seamlessly, ensuring secure and reliable behavior by design.
               </p>
               <p className="text-lg">
-                Benefit from native integration that enables advanced features like automated rewards, governance mechanisms, and custom transfer logic - all without writing complex code from scratch.
+                Unlock advanced capabilities — like automated rewards, governance tools, and custom transfer logic — without writing a single line of code.
               </p>
             </div>
           </div>

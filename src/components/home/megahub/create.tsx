@@ -8,15 +8,13 @@ export default function CreateSection() {
         <div className="grid gap-12 md:grid-cols-2">
           <div className="space-y-8">
             <h2 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-[#2A4A59] to-[#0B2B59]">
-              Collaborate on On-chain Logic
+              Collaborate on On-Chain Logic
             </h2>
             <div className="space-y-6 text-gray-600">
               <p className="text-lg">
-                Build and share powerful token modules that define custom behaviors and logic. You can publish your modules for others to discover and use.
-              </p>
+                Build modules that define how tokens behave — then share them with the world. Publish custom logic others can discover, remix, and reuse.              </p>
               <p className="text-lg">
-                Our collaborative platform enables developers to contribute to a growing ecosystem of on-chain logic. Create once, share with many, and earn recognition for your contributions to the community.
-              </p>
+                Our platform makes it easy for developers and creators to contribute to a growing ecosystem of on-chain intelligence. Create once, power many, and get recognized for what you build.              </p>
             </div>
           </div>
           <div className="grid gap-6">
@@ -27,7 +25,7 @@ export default function CreateSection() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Build Modules</h3>
-                  <p className="text-gray-600">Create reusable token logic modules with our intuitive development tools</p>
+                  <p className="text-gray-600">Create reusable modules with intuitive tools designed for speed, clarity, and collaboration.</p>
                 </div>
               </div>
             </Card>
@@ -38,7 +36,7 @@ export default function CreateSection() {
                 </div>
                 <div>
                   <h3 className="text-xl font-semibold mb-2">Share & Earn</h3>
-                  <p className="text-gray-600">Publish your modules to the marketplace and earn from their adoption</p>
+                  <p className="text-gray-600">Publish your modules to the marketplace and get rewarded when others use them.</p>
                 </div>
               </div>
             </Card>
