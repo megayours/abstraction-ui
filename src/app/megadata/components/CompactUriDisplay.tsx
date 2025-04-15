@@ -43,8 +43,13 @@ export function CompactUriDisplay({
     if (selectedToken) {
       token = `${base}${selectedToken.id}`;
       if (selectedToken.modules.includes(SPECIAL_MODULES.EXTENDING_METADATA) && selectedToken.data?.uri) {
+        setSelectedUriType('gateway');
         gateway = `${config.megaRouterUri}/ext/${selectedToken.data.uri}`;
+      } else {
+        setSelectedUriType('token');
       }
+    } else {
+      setSelectedUriType('base');
     }
 
     return { base, token, gateway };
