@@ -336,6 +336,7 @@ export const uploadFile = async (file: File): Promise<{ hash: string }> => {
     body: JSON.stringify({
       file: base64File,
       contentType: file.type || 'application/octet-stream',
+      name: file.name,
     }),
   });
   if (!response.ok) {
