@@ -335,7 +335,7 @@ export const uploadFile = async (file: File): Promise<{ hash: string }> => {
     headers: addAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       file: base64File,
-      contentType: file.type,
+      contentType: file.type || 'application/octet-stream',
     }),
   });
   if (!response.ok) {

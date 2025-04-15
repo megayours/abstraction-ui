@@ -63,7 +63,8 @@ export function FilePickerDialog({
   };
 
   const handleFileUpload = async (file: File) => {
-    if (accept && accept !== '*/*' && !file.type.match(accept.replace(/,/g, '|').replace(/\*/g, '.*'))) {
+    console.log(`handleFileUpload: ${file.type}`)
+    if (accept && accept !== '*/*' && file.type && !file.type.match(accept.replace(/,/g, '|').replace(/\*/g, '.*'))) {
       setUploadError('Selected file type is not allowed');
       return;
     }
