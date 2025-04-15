@@ -65,9 +65,28 @@ export function FilePickerDialog({
   const handleFileUpload = async (file: File) => {
     console.log(`handleFileUpload: ${file.type}`)
     console.log(`accept: ${accept}`)
-    if (accept && accept !== '*/*' && file.type && !file.type.match(accept.replace(/,/g, '|').replace(/\*/g, '.*'))) {
-      setUploadError('Selected file type is not allowed');
-      return;
+    if (accept && accept !== '*/*') {
+      const acceptList = accept.split(',').map(item => item.trim().toLowerCase());
+      const fileType = file.type.toLowerCase();
+      const fileName = file.name.toLowerCase();
+      const matches = acceptList.some(acceptItem => {
+        if (acceptItem.startsWith('.')) {
+          // Extension match
+          return fileName.endsWith(acceptItem);
+        } else {
+          // MIME type match (allow wildcards)
+          if (acceptItem.includes('*')) {
+            // e.g. image/*
+            const [typeMain] = acceptItem.split('/');
+            return fileType.startsWith(typeMain + '/');
+          }
+          return fileType === acceptItem;
+        }
+      });
+      if (!matches) {
+        setUploadError('Selected file type is not allowed');
+        return;
+      }
     }
     if (file.size > maxSize) {
       setUploadError(`File size must be less than ${Math.round(maxSize / 1024 / 1024)}MB`);
