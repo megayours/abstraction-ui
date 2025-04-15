@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { Terminal, ExternalLink, Globe, Zap } from "lucide-react"
+import { Terminal, ExternalLink, Globe, Zap, Lock } from "lucide-react"
 import * as megadataApi from '@/lib/api/megadata'
 import type { Collection } from '@/lib/api/megadata'
 import { useWeb3Auth } from '@/providers/web3auth-provider'
@@ -33,7 +33,7 @@ export default function ViewCollectionsPage() {
           const fetchedOwnedCollections = await megadataApi.getCollections({ accountId: walletAddress });
           setCollections(fetchedOwnedCollections);
         } else {
-          const fetchedExternalCollections = await megadataApi.getCollections({ type: 'external' });
+          const fetchedExternalCollections = await megadataApi.getCollections();
           setCollections(fetchedExternalCollections);
         }
       } catch (err) {
@@ -94,15 +94,27 @@ export default function ViewCollectionsPage() {
           </div>
         </div>
       </CardHeader>
-      <CardContent className="p-4 pt-0">
+      <CardContent className="px-4 pt-0">
         <div className="flex items-center justify-between">
           <div className="flex items-center text-sm text-muted-foreground">
-            <Zap className="h-4 w-4 mr-1.5 text-primary/70" />
-            {collection.type === 'external' ? 'External Collection' : collection.account_id === walletAddress ? 'Your Collection' : 'Shared Collection'}
+            {collection.type === 'external' ?
+              (
+                <>
+                  <Zap className="h-4 w-4 mr-1.5 text-primary/70" />
+                  <span>External Collection</span>
+                </>
+              ) : collection.account_id === walletAddress ? 
+              (
+                <>
+                  <Lock className="h-4 w-4 mr-1.5 text-primary/70" />
+                  <span>Your Collection</span>
+                </>
+              ) : ('')
+            }
           </div>
-          <Button 
-            asChild 
-            size="sm" 
+          <Button
+            asChild
+            size="sm"
             variant="outline"
             className="border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50 transition-colors"
           >
@@ -123,13 +135,13 @@ export default function ViewCollectionsPage() {
         </Alert>
       );
     }
-    
+
     const showEmptyState = !isLoading && collections.length === 0;
     let emptyStateMessage = "";
     if (showEmptyState) {
-        if (filter === 'owned') emptyStateMessage = "You haven't created any collections yet.";
-        else if (filter === 'external') emptyStateMessage = "No external collections found.";
-        else emptyStateMessage = "No collections found.";
+      if (filter === 'owned') emptyStateMessage = "You haven't created any collections yet.";
+      else if (filter === 'external') emptyStateMessage = "No external collections found.";
+      else emptyStateMessage = "No collections found.";
     }
 
     return (
@@ -141,7 +153,7 @@ export default function ViewCollectionsPage() {
             {filter === 'external' && 'External Collections'}
             <span className="ml-2 text-muted-foreground font-normal">({collections.length})</span>
           </h2>
-          <ToggleGroup 
+          <ToggleGroup
             type="single"
             value={filter}
             onValueChange={(value: string) => { if (value) setFilter(value as FilterType) }}

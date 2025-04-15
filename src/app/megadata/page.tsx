@@ -19,6 +19,7 @@ import { SPECIAL_MODULES } from '@/lib/constants';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
 import { CompactUriDisplay } from './components/CompactUriDisplay';
+import { ModuleSelector } from '@/components/ModuleSelector';
 
 const TOKENS_PAGE_SIZE = 15;
 
@@ -149,34 +150,16 @@ const TokenModules: React.FC<{
           <DialogHeader className="p-6 pb-4">
             <DialogTitle className="text-xl text-primary">Add Available Modules</DialogTitle>
           </DialogHeader>
-          <ScrollArea className="h-[50vh] max-h-[500px] border-t border-b">
-            <div className="space-y-3 p-6">
-              {availableModules
-                .filter(module => !token.modules.includes(module.id))
-                .map(module => (
-                  <div
-                    key={module.id}
-                    className={`p-4 rounded-lg border transition-all duration-150 cursor-pointer ${selectedNewModules.includes(module.id)
-                        ? 'border-primary bg-primary/5 ring-2 ring-primary/50'
-                        : 'border-border hover:border-primary/40 hover:bg-accent/30'
-                      }`}
-                    onClick={() => {
-                      setSelectedNewModules(prev =>
-                        prev.includes(module.id)
-                          ? prev.filter(id => id !== module.id)
-                          : [...prev, module.id]
-                      );
-                    }}
-                  >
-                    <h4 className="font-medium text-base text-foreground">{module.name}</h4>
-                    <p className="text-sm text-muted-foreground mt-1">{module.description}</p>
-                  </div>
-                ))}
-              {availableModules.filter(module => !token.modules.includes(module.id)).length === 0 && (
-                <p className="text-center text-base text-muted-foreground py-8">No more modules available to add.</p>
-              )}
-            </div>
-          </ScrollArea>
+          <ModuleSelector
+            availableModules={availableModules
+              .filter(module => !token.modules.includes(module.id))
+              .filter(module => !isProtectedModule(module.id))
+            }
+            selectedModuleIds={selectedNewModules}
+            onChange={setSelectedNewModules}
+            mode="checkbox"
+            label=""
+          />
           <div className="flex justify-end gap-3 p-6 bg-background/50 rounded-b-xl">
             <Button variant="ghost" onClick={() => setIsModuleDialogOpen(false)}>
               Cancel
@@ -638,66 +621,6 @@ export default function MegaData({ params, searchParams }: PageProps) {
       alert(`Failed to import data: ${error instanceof Error ? error.message : String(error)}`);
     }
   }, [selectedCollection, selectedCollectionData, loadTokens]);
-
-  const handleImageUpload = useCallback(async (token: Token, file: File) => {
-    if (!selectedCollection || !walletAddress || !token || token.is_published) return;
-    if (!file.type.startsWith('image/') || file.size > 5 * 1024 * 1024) {
-      alert('Invalid image file (must be image type, max 5MB).');
-      return;
-    }
-    try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const response = await fetch(`${config.megadataApiUri}/upload`, {
-        method: 'POST', body: formData
-      });
-      if (!response.ok) throw new Error(`Upload failed: ${response.statusText}`);
-      const { url } = await response.json();
-      const updatedData = { ...token.data, image: url };
-      const updatedToken = await megadataApi.updateToken(
-        selectedCollection,
-        token.id,
-        updatedData,
-        token.modules || []
-      );
-      setLoadedTokens(prev => prev.map(t => t.id === token.id ? updatedToken : t));
-      if (selectedToken?.id === token.id) {
-        setSelectedToken(updatedToken);
-        setEditedProperties(JSON.parse(JSON.stringify(updatedToken.data || {})));
-        setHasUnsavedChanges(true);
-      }
-    } catch (error) {
-      console.error('Failed to upload image:', error);
-      alert(`Failed to upload image: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }, [selectedCollection, walletAddress, selectedToken]);
-
-  const handleDeleteToken = useCallback(async (tokenId: string) => {
-    if (!selectedCollection || !walletAddress) return;
-    const tokenToDelete = loadedTokens.find(t => t.id === tokenId);
-    if (!tokenToDelete || tokenToDelete.is_published) {
-      alert("Cannot delete published tokens or token not found.");
-      return;
-    }
-    if (!window.confirm(`Delete token ${tokenId}? This cannot be undone.`)) return;
-    try {
-      await megadataApi.deleteToken(selectedCollection, tokenId);
-      setLoadedTokens(prev => prev.filter(token => token.id !== tokenId));
-      setTotalTokens(prev => (prev !== null ? Math.max(0, prev - 1) : null));
-      if (selectedToken?.id === tokenId) {
-        setSelectedToken(null);
-      }
-      setTokensToPublish(prev => { const next = new Set(prev); next.delete(tokenId); return next; });
-      if (loadedTokens.length === 1 && currentPage > 1) {
-        handlePageChange(currentPage - 1);
-      } else {
-        loadTokens(selectedCollection, currentPage);
-      }
-    } catch (error) {
-      console.error('Failed to delete token:', error);
-      alert(`Failed to delete token: ${error instanceof Error ? error.message : String(error)}`);
-    }
-  }, [selectedCollection, walletAddress, loadedTokens, currentPage, selectedToken, handlePageChange, loadTokens]);
 
   return (
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">

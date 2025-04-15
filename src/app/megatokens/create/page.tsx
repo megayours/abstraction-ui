@@ -14,6 +14,7 @@ import * as megadataApi from '@/lib/api/megadata'
 import type { Module } from '@/lib/api/megadata'
 import { useWeb3Auth } from '@/providers/web3auth-provider'
 import { SPECIAL_MODULES } from '@/lib/constants'
+import { ModuleSelector } from '@/components/ModuleSelector'
 
 // Helper functions (similar to megadata/page.tsx)
 const mergeSchemas = (modules: Module[]): Record<string, any> | null => {
@@ -196,28 +197,14 @@ export default function CreateCollectionPage() {
                     <div className="flex items-center text-muted-foreground">
                       <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Loading modules...
                     </div>
-                  ) : availableModules.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">No modules available.</p>
                   ) : (
-                    <ScrollArea className="h-40 w-full rounded-md border p-4">
-                      <div className="space-y-3">
-                        {availableModules.map((module) => (
-                          <div key={module.id} className="flex items-center space-x-2">
-                            <Checkbox 
-                              id={`module-${module.id}`}
-                              checked={selectedModules.includes(module.id)}
-                              onCheckedChange={() => handleModuleChange(module.id)}
-                            />
-                            <label
-                              htmlFor={`module-${module.id}`}
-                              className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 cursor-pointer"
-                            >
-                              {module.name} <span className="text-xs text-muted-foreground">({module.id})</span>
-                            </label>
-                          </div>
-                        ))}
-                      </div>
-                    </ScrollArea>
+                    <ModuleSelector
+                      availableModules={availableModules}
+                      selectedModuleIds={selectedModules}
+                      onChange={setSelectedModules}
+                      mode="checkbox"
+                      label=""
+                    />
                   )}
                 </div>
 
