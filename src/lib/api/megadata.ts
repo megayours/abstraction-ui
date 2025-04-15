@@ -326,20 +326,20 @@ export const createTokensBulk = async (
   return response.json();
 };
 
-export const uploadImage = async (image: File): Promise<{ hash: string }> => {
+export const uploadFile = async (file: File): Promise<{ hash: string }> => {
   // Convert File to Base64
-  const arrayBuffer = await image.arrayBuffer();
+  const arrayBuffer = await file.arrayBuffer();
   const base64File = bufferToBase64(arrayBuffer);
   const response = await fetch(`${API_URL}/megahub/upload-file`, {
     method: 'POST',
-    headers: addAuthHeaders({ 'Content-Type': 'application/json' }), // Re-apply addAuthHeaders
+    headers: addAuthHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({
       file: base64File,
-      contentType: image.type,
+      contentType: file.type,
     }),
   });
   if (!response.ok) {
-    throw new Error('Failed to upload image');
+    throw new Error('Failed to upload file');
   }
   return response.json();
 };

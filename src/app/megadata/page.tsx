@@ -792,7 +792,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                     <CardTitle className="text-xl text-primary font-medium">Tokens ({totalTokens ?? '...'})</CardTitle>
                     <CardDescription>Select a token below to view or edit.</CardDescription>
                   </CardHeader>
-                  <div className="flex-1 h-[calc(800px-88px)]">
+                  <div className="flex-1 h-[calc(800px-88px)] mx-4">
                     <TokenPageableList
                       items={loadedTokens}
                       totalItems={totalTokens ?? 0}

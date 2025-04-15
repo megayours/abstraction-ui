@@ -7,7 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Trash2, PlusCircle, Upload } from 'lucide-react';
 import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { ImagePickerDialog } from './ImagePickerDialog';
+import { FilePickerDialog } from './FilePickerDialog';
 
 export interface DynamicFormProps {
   schema: Record<string, any>;
@@ -18,8 +18,9 @@ export interface DynamicFormProps {
 
 const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, readOnly }) => {
 
-  const [isImagePickerOpen, setIsImagePickerOpen] = useState(false);
-  const [imageFieldPath, setImageFieldPath] = useState<string | null>(null);
+  const [filePickerOpen, setFilePickerOpen] = useState(false);
+  const [fileFieldPath, setFileFieldPath] = useState<string | null>(null);
+  const [filePickerConfig, setFilePickerConfig] = useState<{ accept?: string; maxSize?: number; description?: string }>({});
 
   const handleChange = useCallback((field: string, newValue: any) => {
     onChange({ ...value, [field]: newValue });
@@ -228,6 +229,16 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
     onChange(updatedValue);
   }, [value, onChange]);
 
+  // Helper to parse maxSize string like '10MB', '500KB', or number
+  function parseMaxSize(maxSize?: string | number): number | undefined {
+    if (!maxSize) return undefined;
+    if (typeof maxSize === 'number') return maxSize;
+    const str = maxSize.trim().toLowerCase();
+    if (str.endsWith('mb')) return parseInt(str) * 1024 * 1024;
+    if (str.endsWith('kb')) return parseInt(str) * 1024;
+    return parseInt(str);
+  }
+
   // Update renderField for array/object to use handleNestedChange
   const renderFieldRevised = (field: string, fieldSchema: any, pathPrefix = '') => {
     const currentPath = pathPrefix ? `${pathPrefix}.${field}` : field;
@@ -239,54 +250,48 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
     const id = `form-field-${currentPath.replace(/\W/g, '_')}`;
     const currentValue = getNestedValue(value, currentPath);
 
-    // Special handling for the 'image' field
-    if (field === 'image' && fieldSchema.type === 'string' && !pathPrefix) { // Only handle top-level image for now
-        return (
-            <div key={currentPath} className="mb-6">
-                <Label htmlFor={id} className="mb-2 block">
-                    {label}
-                    {isRequired && <span className="text-red-500 ml-1">*</span>}
-                </Label>
-                <div className="flex items-center space-x-2">
-                    <Input
-                        id={id}
-                        type="url" 
-                        value={currentValue || ''}
-                        readOnly // Display only
-                        placeholder="No image uploaded"
-                        className="flex-grow"
-                    />
-                    {!readOnly && (
-                      currentValue ? (
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => {
-                            setImageFieldPath(currentPath);
-                            setIsImagePickerOpen(true);
-                          }}
-                        >
-                          <Upload className="mr-2 h-4 w-4" /> Change Image
-                        </Button>
-                      ) : (
-                        <Button
-                          type="button"
-                          variant="default" // More prominent for initial upload
-                          onClick={() => {
-                            setImageFieldPath(currentPath);
-                            setIsImagePickerOpen(true);
-                          }}
-                        >
-                           <Upload className="mr-2 h-4 w-4" /> Upload New Image
-                        </Button>
-                      )
-                    )}
-                </div>
-                {fieldSchema.description && (
-                   <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
-                )}
-            </div>
-        );
+    // Special handling for the 'x-upload' field
+    if (fieldSchema['x-upload']) {
+      const xUpload = fieldSchema['x-upload'];
+      return (
+        <div key={currentPath} className="mb-6">
+          <Label htmlFor={id} className="mb-2 block">
+            {label}
+            {isRequired && <span className="text-red-500 ml-1">*</span>}
+          </Label>
+          <div className="flex items-center space-x-2">
+            <Input
+              id={id}
+              type="url"
+              value={currentValue || ''}
+              onChange={e => handleNestedChange(currentPath, e.target.value)}
+              readOnly={readOnly}
+              placeholder={fieldSchema.description || xUpload.description || `Enter or upload ${label}`}
+              className="flex-grow"
+            />
+            {!readOnly && (
+              <Button
+                type="button"
+                variant={currentValue ? 'outline' : 'default'}
+                onClick={() => {
+                  setFileFieldPath(currentPath);
+                  setFilePickerConfig({
+                    accept: xUpload.accept,
+                    maxSize: parseMaxSize(xUpload.maxSize),
+                    description: xUpload.description,
+                  });
+                  setFilePickerOpen(true);
+                }}
+              >
+                <Upload className="mr-2 h-4 w-4" /> {currentValue ? 'Change File' : 'Upload File'}
+              </Button>
+            )}
+          </div>
+          {fieldSchema.description && (
+            <p className="text-sm text-muted-foreground mt-1">{fieldSchema.description}</p>
+          )}
+        </div>
+      );
     }
 
     // Handle 'oneOf' - Render based on the first applicable type
@@ -615,20 +620,25 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
         renderFieldRevised(field, schema.properties[field])
       ))}
 
-      {/* Image Picker Dialog */}
-      <ImagePickerDialog
-        isOpen={isImagePickerOpen}
+      {/* File Picker Dialog */}
+      <FilePickerDialog
+        isOpen={filePickerOpen}
         onClose={() => {
-            setIsImagePickerOpen(false);
-            setImageFieldPath(null); // Reset path on close
+            setFilePickerOpen(false);
+            setFileFieldPath(null);
+            setFilePickerConfig({});
         }}
-        onImageUploaded={(imageUrl) => {
-          if (imageFieldPath) {
-            handleNestedChange(imageFieldPath, imageUrl);
+        onFileUploaded={fileUrl => {
+          if (fileFieldPath) {
+            handleNestedChange(fileFieldPath, fileUrl);
           }
-          setIsImagePickerOpen(false);
-          setImageFieldPath(null); // Reset path after upload
+          setFilePickerOpen(false);
+          setFileFieldPath(null);
+          setFilePickerConfig({});
         }}
+        accept={filePickerConfig.accept}
+        maxSize={filePickerConfig.maxSize}
+        description={filePickerConfig.description}
       />
     </div>
   );
