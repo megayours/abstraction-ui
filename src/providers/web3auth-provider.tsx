@@ -109,6 +109,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
               if (decodedToken.exp && decodedToken.exp < now) {
                 // Token expired, remove it
                 localStorage.removeItem('token');
+                localStorage.removeItem('app_pub_key');
               } else {
                 setToken(storedToken);
                 // Try to get wallet address from token
@@ -120,6 +121,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
             } catch (error) {
               console.error('Error decoding stored token:', error);
               localStorage.removeItem('token');
+              localStorage.removeItem('app_pub_key');
             }
           }
         }
@@ -192,6 +194,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
       setToken(null);
       setWalletAddress(null);
       localStorage.removeItem('token');
+      localStorage.removeItem('app_pub_key');
     }
   };
 
@@ -202,8 +205,8 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
       setProvider(null);
       setToken(null);
       setWalletAddress(null);
-      localStorage.removeItem('app_pub_key');
       localStorage.removeItem('token');
+      localStorage.removeItem('app_pub_key');
     } catch (error) {
       console.error('Error logging out:', error);
     }
