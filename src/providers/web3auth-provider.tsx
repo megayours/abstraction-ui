@@ -103,16 +103,23 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
           // Check localStorage for existing token
           const storedToken = localStorage.getItem('token');
           if (storedToken) {
-            setToken(storedToken);
-            // Try to get wallet address from token
             try {
-              const decodedToken = jwtDecode(storedToken) as any;
-              const ethereumWallet = decodedToken.wallets?.find((w: any) => w.type === 'ethereum');
-              if (ethereumWallet?.address) {
-                setWalletAddress(ethereumWallet.address);
+              const decodedToken = jwtDecode(storedToken) as JwtPayload;
+              const now = Math.floor(Date.now() / 1000);
+              if (decodedToken.exp && decodedToken.exp < now) {
+                // Token expired, remove it
+                localStorage.removeItem('token');
+              } else {
+                setToken(storedToken);
+                // Try to get wallet address from token
+                const ethereumWallet = decodedToken.wallets?.find((w: any) => w.type === 'ethereum');
+                if (ethereumWallet?.address) {
+                  setWalletAddress(ethereumWallet.address);
+                }
               }
             } catch (error) {
               console.error('Error decoding stored token:', error);
+              localStorage.removeItem('token');
             }
           }
         }
