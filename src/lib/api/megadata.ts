@@ -79,6 +79,17 @@ export interface PaginatedTokensResponse extends Pagination {
   tokens: Token[];
 }
 
+// Types for token config endpoint
+export type TokenTypeConfig = {
+  name: string;
+  type: string;
+};
+
+export type TokenConfig = {
+  name: string;
+  token_types: TokenTypeConfig[];
+};
+
 const API_URL = config.megadataApiUri;
 
 // Add the local addAuthHeaders function back
@@ -390,6 +401,39 @@ export async function getExternalCollection(collectionId: number): Promise<Exter
   if (!response.ok) {
     // Consider more specific error handling based on status code (401, 404)
     throw new Error(`Failed to fetch external collection details for ID ${collectionId}`);
+  }
+  return response.json();
+}
+
+/**
+ * Fetches available token sources and types from the /config/tokens endpoint.
+ * Returns an array of token configs, each with a name and token_types.
+ */
+export async function getTokenConfigs(): Promise<TokenConfig[]> {
+  const response = await fetch(`${API_URL}/config/tokens`, {
+    headers: addAuthHeaders({ 'Content-Type': 'application/json' })
+  });
+  if (!response.ok) {
+    throw new Error('Failed to fetch token configs');
+  }
+  return response.json();
+}
+
+/**
+ * Fetches random tokens that have a specific attribute using the /megadata/tokens/random endpoint.
+ * @param attribute The attribute to filter tokens by (e.g., 'image')
+ * @param count The number of random tokens to fetch
+ * @returns Promise<Token[]>
+ */
+export async function getRandomTokensByAttribute(attribute: string, count: number): Promise<Token[]> {
+  const API_URL = config.megadataApiUri;
+  const url = `${API_URL}/megadata/tokens/random?attribute=${encodeURIComponent(attribute)}&count=${count}`;
+  const response = await fetch(url, {
+    headers: addAuthHeaders({ 'Content-Type': 'application/json' })
+  });
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({ error: 'Failed to fetch random tokens' }));
+    throw new Error(errorData.error || 'Failed to fetch random tokens');
   }
   return response.json();
 }

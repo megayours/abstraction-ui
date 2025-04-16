@@ -12,6 +12,7 @@ import { motion } from 'framer-motion'
 import Polygon from '../../logos/polygon'
 import { Base } from '@/components/logos/base'
 import { Arbitrum } from '@/components/logos/arbitrum'
+import ExternalCollectionsCarousel from '@/components/home/megatokens/token-gallery'
 
 export default function HeroSection() {
     const ref = useRef(null)

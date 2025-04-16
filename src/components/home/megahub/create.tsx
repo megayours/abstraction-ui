@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 
 export default function CreateSection() {
   return (
-    <section className="relative py-24 bg-gradient-to-b from-white to-gray-50">
+    <section className="relative py-24">
       <div className="mx-auto max-w-5xl px-6">
         <div className="grid gap-12 md:grid-cols-2">
           <div className="space-y-8">

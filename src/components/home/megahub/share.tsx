@@ -3,7 +3,7 @@ import { Card } from "@/components/ui/card";
 
 export default function ShareSection() {
   return (
-    <section className="relative py-24">
+    <section className="relative py-24 bg-gradient-to-b from-white to-gray-50">
       <div className="mx-auto max-w-5xl px-6">
         <div className="grid gap-12 md:grid-cols-2">
           <div className="grid gap-6 order-2 md:order-1">

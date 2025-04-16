@@ -12,15 +12,15 @@ const fadeInUp = {
   transition: { duration: 0.3 }
 }
 
-const JourneyStep = ({ 
-  title, 
-  description, 
-  icon: Icon, 
+const JourneyStep = ({
+  title,
+  description,
+  icon: Icon,
   delay = 0,
   href,
   isComingSoon = false,
   className = ""
-}: { 
+}: {
   title: string
   description: string
   icon: any
@@ -63,8 +63,8 @@ const JourneyStep = ({
   return content
 }
 
-const AnimatedArrow = ({ 
-  delay = 0, 
+const AnimatedArrow = ({
+  delay = 0,
   className = ""
 }) => {
   return (
@@ -85,10 +85,9 @@ const AnimatedArrow = ({
 }
 
 export default function UserJourney() {
-  const containerRef = React.useRef(null)
 
   return (
-    <section id="user-journey" ref={containerRef} className="relative py-24">
+    <section id="user-journey" className="relative py-24">
       <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white"></div>
       <div className="container mx-auto px-4 relative">
         <div className="text-center mb-4 md:mb-8">

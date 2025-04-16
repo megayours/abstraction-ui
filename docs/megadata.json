@@ -1430,7 +1430,7 @@
             }
           },
           "400": {
-            "description": "Invalid request parameters",
+            "description": "Bad Request",
             "content": {
               "application/json": {
                 "schema": {
@@ -1484,7 +1484,85 @@
             }
           },
           "404": {
-            "description": "Token not found",
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "error": {
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "error"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/megadata/tokens/random": {
+      "get": {
+        "tags": [
+          "Tokens"
+        ],
+        "summary": "Get random tokens by attribute",
+        "parameters": [
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "attribute",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string"
+            },
+            "required": true,
+            "name": "count",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Random tokens with the specified attribute",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "collection_id": {
+                        "type": "number"
+                      },
+                      "id": {
+                        "type": "string"
+                      },
+                      "data": {
+                        "type": "object",
+                        "additionalProperties": {
+                          "nullable": true
+                        }
+                      }
+                    },
+                    "required": [
+                      "collection_id",
+                      "id",
+                      "data"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request parameters",
             "content": {
               "application/json": {
                 "schema": {
@@ -1528,11 +1606,16 @@
                   "contentType": {
                     "type": "string",
                     "description": "MIME type of the file"
+                  },
+                  "name": {
+                    "type": "string",
+                    "description": "Name of the file"
                   }
                 },
                 "required": [
                   "file",
-                  "contentType"
+                  "contentType",
+                  "name"
                 ]
               }
             }
@@ -1723,6 +1806,56 @@
                   "required": [
                     "error"
                   ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config/tokens": {
+      "get": {
+        "tags": [
+          "Config"
+        ],
+        "summary": "Get all token configs",
+        "responses": {
+          "200": {
+            "description": "List of token configs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": {
+                        "type": "string"
+                      },
+                      "token_types": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "name": {
+                              "type": "string"
+                            },
+                            "type": {
+                              "type": "string"
+                            }
+                          },
+                          "required": [
+                            "name",
+                            "type"
+                          ]
+                        }
+                      }
+                    },
+                    "required": [
+                      "name",
+                      "token_types"
+                    ]
+                  }
                 }
               }
             }

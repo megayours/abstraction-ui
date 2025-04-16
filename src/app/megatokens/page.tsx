@@ -15,7 +15,6 @@ export default function DynamicNFTsPage() {
             Create, manage, and extend your dynamic token collections with advanced features.
           </p>
         </div>
-
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           <Link href="/megatokens/view" passHref>
             <Card className="group hover:shadow-xl transition-all duration-300 ease-in-out h-full flex flex-col border-border/50 bg-card/90 backdrop-blur-sm overflow-hidden transform hover:-translate-y-1">

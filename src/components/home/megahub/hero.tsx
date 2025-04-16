@@ -4,8 +4,8 @@ import Link from "next/link";
 
 export default function HeroSection() {
     return (
-        <section className="relative">
-            <div className="mx-auto max-w-5xl px-6 lg:px-8 my-24">
+        <section className="relative py-18 bg-gradient-to-b from-white to-gray-50">
+            <div className="mx-auto px-6 lg:px-8 my-24">
                 <div className="relative z-10">
                     <div className="mx-auto max-w-4xl text-center">
                         <h1 className="font-serif text-balance text-4xl font-medium md:text-5xl xl:text-7xl">

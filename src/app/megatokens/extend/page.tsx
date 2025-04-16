@@ -6,7 +6,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Terminal, Info, Loader2 } from "lucide-react"
 import * as megadataApi from '@/lib/api/megadata'
@@ -15,11 +15,42 @@ import { useWeb3Auth } from '@/providers/web3auth-provider'
 export default function ExtendCollectionPage() {
   const router = useRouter();
   const { walletAddress, isConnected } = useWeb3Auth();
-  const [source, setSource] = useState('ethereum'); // The blockchain the collection is deployed on
-  const [id, setId] = useState(''); // The contract address or collection ID
-  const [type, setType] = useState('erc721'); // Default type, adjust as needed
+  const [source, setSource] = useState('');
+  const [id, setId] = useState('');
+  const [type, setType] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tokenConfigs, setTokenConfigs] = useState<megadataApi.TokenConfig[]>([]);
+  const [isLoadingConfigs, setIsLoadingConfigs] = useState(false);
+
+  useEffect(() => {
+    setIsLoadingConfigs(true);
+    megadataApi.getTokenConfigs()
+      .then((configs) => {
+        setTokenConfigs(configs);
+        if (configs.length > 0) {
+          setSource(configs[0].name);
+          if (configs[0].token_types.length > 0) {
+            setType(configs[0].token_types[0].type);
+          }
+        }
+      })
+      .catch(() => setError('Failed to load available sources/types.'))
+      .finally(() => setIsLoadingConfigs(false));
+  }, []);
+
+  // Update type when source changes
+  useEffect(() => {
+    if (!source) return;
+    const config = tokenConfigs.find((c) => c.name === source);
+    if (config && config.token_types.length > 0) {
+      setType(config.token_types[0].type);
+    } else {
+      setType('');
+    }
+  }, [source, tokenConfigs]);
+
+  const availableTypes = tokenConfigs.find((c) => c.name === source)?.token_types || [];
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,7 +66,7 @@ export default function ExtendCollectionPage() {
       const payload: megadataApi.ExternalCollectionCreatePayload = {
         source: source,
         id: id,
-        type: type, 
+        type: type,
       };
       const newCollection = await megadataApi.createExternalCollection(payload);
       router.push(`/megadata/${newCollection.id}`);
@@ -80,13 +111,32 @@ export default function ExtendCollectionPage() {
 
                 <div className="space-y-2">
                   <Label htmlFor="source" className="text-foreground">Source</Label>
-                  <Select value={source} onValueChange={setSource}>
+                  <Select value={source} onValueChange={setSource} disabled={isLoadingConfigs || isLoading}>
                     <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select source" />
+                      <SelectValue placeholder={isLoadingConfigs ? 'Loading...' : 'Select source'} />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ethereum">Ethereum</SelectItem>
-                      {/* Add other sources if supported by API */}
+                      {tokenConfigs.map((config) => (
+                        <SelectItem key={config.name} value={config.name}>
+                          {config.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="type" className="text-foreground">Source Type</Label>
+                  <Select value={type} onValueChange={setType} disabled={!source || isLoadingConfigs || isLoading}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder={!source ? 'Select source first' : (isLoadingConfigs ? 'Loading...' : 'Select source type')} />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableTypes.map((t) => (
+                        <SelectItem key={t.type} value={t.type}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                 </div>
@@ -99,20 +149,8 @@ export default function ExtendCollectionPage() {
                     onChange={(e) => setId(e.target.value)}
                     placeholder="0x... or Collection ID"
                     required 
+                    disabled={isLoading}
                   />
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="type" className="text-foreground">Source Type</Label>
-                  <Select value={type} onValueChange={setType}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Select source type" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="erc721">ERC721</SelectItem>
-                      {/* Add other types if supported by API */}
-                    </SelectContent>
-                  </Select>
                 </div>
                 
                 {error && (
@@ -126,7 +164,7 @@ export default function ExtendCollectionPage() {
                 <div className="flex justify-end">
                   <Button 
                     type="submit" 
-                    disabled={isLoading || !id}
+                    disabled={isLoading || !id || !source || !type}
                     className="bg-primary hover:bg-primary/90 text-primary-foreground"
                   >
                     {isLoading ? (
