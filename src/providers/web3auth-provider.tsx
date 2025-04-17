@@ -191,7 +191,7 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
         ).toString("hex");
         localStorage.setItem('app_pub_key', app_pub_key);
       } catch (error) {
-        console.log('Error getting app_pub_key:', error);
+        console.log('Detected external wallet sign-in method');
       }
     } catch (error) {
       console.error('Error during authentication:', error);
