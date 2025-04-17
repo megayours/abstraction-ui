@@ -752,10 +752,10 @@ export default function MegaData({ params, searchParams }: PageProps) {
                         {tokenValidationError && (
                           <Badge variant="destructive" className="px-3 py-1 text-xs">Read-only</Badge>
                         )}
-                        {hasUnsavedChanges && !selectedToken?.is_published && !tokenValidationError && (
+                        {hasUnsavedChanges && !tokenValidationError && (
                           <Badge variant="outline" className="border-yellow-500 text-yellow-600 bg-yellow-50 px-3 py-1 text-xs">Unsaved</Badge>
                         )}
-                        {hasUnsavedChanges && !selectedToken?.is_published && !tokenValidationError && (
+                        {hasUnsavedChanges && !tokenValidationError && (
                           <Button
                             onClick={handleSaveToken}
                             disabled={isSaving}
