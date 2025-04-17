@@ -175,25 +175,24 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
       // Get wallet address
       const web3 = new Web3(web3authProvider);
       const walletAddress = (await web3.eth.getAccounts())[0];
+
       setWalletAddress(walletAddress);
-
-      // For social logins, get the app_pub_key
-      console.log('userInfo', userInfo);
-      const app_scoped_privkey = await web3authProvider.request({
-        method: "eth_private_key",
-      }) as string;
-      const app_pub_key = getPublicCompressed(
-        Buffer.from(app_scoped_privkey.padStart(64, "0"), "hex"),
-      ).toString("hex");
-      localStorage.setItem('app_pub_key', app_pub_key);
-
-      // Store the original token and wallet address
       setToken(userInfo.idToken);
-      setWalletAddress(walletAddress);
       localStorage.setItem('token', userInfo.idToken);
 
-      // Fetch connected accounts
-
+      // For social logins, get the app_pub_key
+      try {
+        console.log('userInfo', userInfo);
+        const app_scoped_privkey = await web3authProvider.request({
+          method: "eth_private_key",
+        }) as string;
+        const app_pub_key = getPublicCompressed(
+          Buffer.from(app_scoped_privkey.padStart(64, "0"), "hex"),
+        ).toString("hex");
+        localStorage.setItem('app_pub_key', app_pub_key);
+      } catch (error) {
+        console.log('Error getting app_pub_key:', error);
+      }
     } catch (error) {
       console.error('Error during authentication:', error);
       throw error; // Re-throw to handle in the login function
