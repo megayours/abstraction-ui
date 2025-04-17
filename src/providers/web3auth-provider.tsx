@@ -1,12 +1,13 @@
 'use client';
 
-import { Web3Auth } from '@web3auth/modal';
-import { WEB3AUTH_NETWORK } from '@web3auth/base';
+import { Web3Auth, Web3AuthOptions } from '@web3auth/modal';
+import { IWeb3AuthCoreOptions, WEB3AUTH_NETWORK } from '@web3auth/base';
 import { WalletConnectModal } from "@walletconnect/modal";
 import {
   getWalletConnectV2Settings,
   WalletConnectV2Adapter,
 } from "@web3auth/wallet-connect-v2-adapter";
+import { getInjectedAdapters } from "@web3auth/default-evm-adapter";
 import { EthereumPrivateKeyProvider } from '@web3auth/ethereum-provider';
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { jwtDecode } from 'jwt-decode';
@@ -87,6 +88,14 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
           config: { chainConfig: selectedChain.web3AuthConfig }
         });
 
+        const web3AuthOptions: IWeb3AuthCoreOptions = {
+          clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID || '',
+          web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
+          chainConfig: selectedChain.web3AuthConfig,
+          privateKeyProvider,
+          uiConfig: { appName: 'MegaYours', logoDark: 'favicon.ico', logoLight: 'favicon.ico' }
+        }
+
         const web3authInstance = new Web3Auth({
           clientId: process.env.NEXT_PUBLIC_WEB3AUTH_CLIENT_ID || '',
           web3AuthNetwork: WEB3AUTH_NETWORK.SAPPHIRE_DEVNET,
@@ -95,23 +104,11 @@ export function Web3AuthProvider({ children }: Web3AuthProviderProps) {
           uiConfig: { appName: 'MegaYours', logoDark: 'favicon.ico', logoLight: 'favicon.ico' }
         });
 
-        const defaultWcSettings = await getWalletConnectV2Settings(
-          "eip155",
-          ["1"],
-          process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || ""
-        )
+        const adapters = getInjectedAdapters({ options: web3AuthOptions });
 
-        console.log("Project ID", process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID);
-
-        const walletConnectModal = new WalletConnectModal({
-          projectId: process.env.NEXT_PUBLIC_WALLETCONNECT_PROJECT_ID || "",
+        adapters.forEach((adapter) => {
+          web3authInstance.configureAdapter(adapter);
         });
-        const walletConnectV2Adapter = new WalletConnectV2Adapter({
-          adapterSettings: { qrcodeModal: walletConnectModal, ...defaultWcSettings.adapterSettings },
-          loginSettings: { ...defaultWcSettings.loginSettings },
-        });
-
-        web3authInstance.configureAdapter(walletConnectV2Adapter);
 
         await web3authInstance.initModal();
         setWeb3auth(web3authInstance);
