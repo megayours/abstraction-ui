@@ -494,6 +494,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
         return;
       }
       const validationResult = await megadataApi.validateToken(selectedCollection!, token.id);
+      console.log('validationResult', validationResult);
       if (!validationResult.isValid) {
         setTokenValidationError(validationResult.error || 'Token validation failed. Edits may be limited.');
       }
@@ -812,7 +813,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                             schema={mergedSchema ?? undefined}
                             value={editedProperties}
                             onChange={walletAddress ? (value: Record<string, any>) => setEditedProperties(value) : () => { }}
-                            readOnly={!walletAddress || isSaving || isPublishing || !!tokenValidationError || selectedToken.is_published}
+                            readOnly={!walletAddress || isSaving || isPublishing || !!tokenValidationError}
                           />
                           {!mergedSchema && (
                             <p className="text-sm text-muted-foreground mt-4 italic">No metadata schema defined by attached modules.</p>
