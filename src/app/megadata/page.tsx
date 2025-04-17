@@ -559,7 +559,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
   }, [selectedCollection, walletAddress, selectedCollectionData, selectedToken, loadTokens, loadCollectionData]);
 
   const handleSaveToken = useCallback(async () => {
-    if (!selectedToken || !selectedCollection || !hasUnsavedChanges || selectedToken.is_published || tokenValidationError) return;
+    if (!selectedToken || !selectedCollection || !hasUnsavedChanges || tokenValidationError) return;
     setIsSaving(true);
     try {
       const updatedToken = await megadataApi.updateToken(

@@ -1,6 +1,5 @@
 import React from 'react';
 import DynamicForm from './DynamicForm';
-import type { Token } from '@/lib/api/megadata';
 
 export interface MegadataFormProps {
   schema?: Record<string, any>;
