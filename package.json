@@ -39,6 +39,7 @@
     "@web3auth/modal": "^9.7.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "d3": "^7.9.0",
     "dagre": "^0.8.5",
     "ethers": "^6.13.5",
     "filehub": "^1.0.4",
