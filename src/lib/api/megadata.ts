@@ -28,11 +28,17 @@ export interface Account {
   updated_at: string | Date | number;
 }
 
+export interface Schema {
+  type: string;
+  properties: Record<string, any>;
+  required: string[];
+}
+
 export interface Module {
   id: string;
   name: string;
   description: string;
-  schema: Record<string, any>;
+  schema: Schema;
   created_at: number;
   updated_at: number;
 }
