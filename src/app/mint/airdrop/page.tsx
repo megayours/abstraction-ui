@@ -6,7 +6,6 @@ import { Card } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Database, Search, ArrowRight, ArrowLeft, Loader2 } from 'lucide-react'
-import { useWallet } from '@/contexts/WalletContext'
 import { fetchAssetGroups } from '@/lib/api/abstraction-chain'
 import { getCollections } from '@/lib/api/abstraction-chain'
 import type { AssetGroup, MegaDataCollection } from '@/lib/types'
@@ -23,7 +22,7 @@ const steps: Step[] = [
   {
     id: 1,
     title: 'Select Collection',
-    description: 'Choose a MegaData collection to create your airdrop from',
+    description: 'Choose a Megatokens collection to create your airdrop from',
     icon: Database,
   },
   {

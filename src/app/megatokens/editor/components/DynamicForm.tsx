@@ -652,7 +652,7 @@ const DynamicForm: React.FC<DynamicFormProps> = ({ schema, value, onChange, read
     <div className="max-w-2xl mx-auto bg-white/80 border border-border/40 rounded-2xl shadow-lg p-8 space-y-10">
       {/* Section Title */}
       <div className="mb-8 text-center">
-        <h2 className="text-3xl font-serif font-bold text-primary mb-2 tracking-tight">Metadata Properties</h2>
+        <h2 className="text-3xl font-bold text-primary mb-2 tracking-tight">Metadata Properties</h2>
         <p className="text-lg text-muted-foreground">Define the properties and metadata for your token</p>
       </div>
       <div className="space-y-8">

@@ -144,7 +144,7 @@ export default function CreateCollectionPage() {
       }
 
       // 3. Redirect
-      router.push(`/megadata/${collectionId}`);
+      router.push(`/megatokens/editor/${collectionId}`);
 
     } catch (err) {
       console.error("Failed to create collection or tokens:", err);
@@ -157,7 +157,7 @@ export default function CreateCollectionPage() {
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">
       <div className="container mx-auto max-w-screen-xl px-6 space-y-12">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-serif mb-5 text-primary font-bold">Create Collection</h1>
+          <h1 className="text-5xl md:text-6xl mb-5 text-primary font-bold">Create Collection</h1>
           <p className="text-xl text-muted-foreground">
             Start a new dynamic token collection from scratch.
           </p>

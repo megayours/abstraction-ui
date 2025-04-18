@@ -305,9 +305,9 @@ export default function MegaData({ params, searchParams }: PageProps) {
       setIsManualSelection(true);
       setSelectedCollection(id);
       if (id) {
-        router.push(`/megadata/${id}`, { scroll: false });
+        router.push(`/megatokens/editor/${id}`, { scroll: false });
       } else {
-        router.push('/megadata', { scroll: false });
+        router.push('/megatokens/editor', { scroll: false });
       }
     };
 
@@ -627,7 +627,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">
       <div className="container mx-auto max-w-screen-xl px-6 space-y-12">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-serif mb-5 text-primary font-bold">MegaData Editor</h1>
+          <h1 className="text-5xl md:text-6xl mb-5 text-primary font-bold">Editor</h1>
           <p className="text-xl text-muted-foreground">
             {walletAddress ? 'Create, manage, and publish your on-chain token metadata with advanced features.' : 'View on-chain token metadata.'}
           </p>
@@ -740,7 +740,7 @@ export default function MegaData({ params, searchParams }: PageProps) {
                   <CardHeader className="border-b border-border/50 p-6">
                     <div className="flex items-center justify-between gap-4">
                       <div>
-                        <CardTitle className="text-xl text-primary font-medium">MegaData Editor</CardTitle>
+                        <CardTitle className="text-xl text-primary font-medium">Editor</CardTitle>
                         <CardDescription>
                           {selectedToken ? `Editing Token ID: ${selectedToken.id}` : "Select a token to start editing"}
                         </CardDescription>

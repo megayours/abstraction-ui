@@ -10,6 +10,7 @@ import { Button } from './ui/button'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from './ui/dropdown-menu'
 import { SignInButton } from './auth/SignInButton'
 import { links } from '@/lib/links'
+import { usePathname } from 'next/navigation'
 type MenuItem = {
     name: string;
     href: string;
@@ -105,6 +106,18 @@ const NavigationItem = ({ item }: { item: typeof menuItems[number] }) => {
     )
 }
 
+const getTitle = () => {
+    const pathname = usePathname();
+    const pathParts = pathname.split('/');
+
+    if (pathParts.length < 2) {
+        return '';
+    }
+
+    const partToCapitalize = pathParts[1];
+    return partToCapitalize.toUpperCase();
+}
+
 export const HeroHeader = () => {
     const [menuState, setMenuState] = React.useState(false)
     const { isConnected, isLoading, login, logout, walletAddress } = useWeb3Auth();
@@ -115,13 +128,14 @@ export const HeroHeader = () => {
 
     return (
         <header className="bg-primary-foreground fixed z-20 w-full border-b backdrop-blur-3xl">
-            <div className="mx-auto max-w-6xl px-6 transition-all duration-300">
+            <div className="mx-auto max-w-6xl px-5 transition-all duration-300">
                 <div className="relative flex items-center justify-between py-3 lg:py-4">
                     <Link
                         href="/"
                         aria-label="home"
                         className="flex items-center space-x-2">
                         <Logo />
+                        <span className="hidden sm:inline-block ml-3 lg:ml-4 text-primary/70 border-l border-primary/30 pl-2 lg:pl-4 text-sm lg:text-base font-medium">{getTitle()}</span>
                     </Link>
 
                     <div className="flex items-center gap-4">
@@ -135,8 +149,8 @@ export const HeroHeader = () => {
                             {isConnected ? (
                                 <DropdownMenu>
                                     <DropdownMenuTrigger asChild>
-                                        <Button 
-                                            variant="ghost" 
+                                        <Button
+                                            variant="ghost"
                                             size="icon"
                                             className="h-10 w-10 rounded-full hover:bg-accent"
                                         >
@@ -197,8 +211,8 @@ export const HeroHeader = () => {
                                     {walletAddress ? `${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}` : 'Connected'}
                                 </span>
                             </div>
-                            <Button 
-                                variant="outline" 
+                            <Button
+                                variant="outline"
                                 onClick={logout}
                                 size="sm"
                                 className="text-destructive border-destructive/30 hover:bg-destructive/10 w-full justify-start"

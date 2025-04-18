@@ -124,7 +124,7 @@ export default function ViewCollectionsPage() {
             variant="outline"
             className="border-primary/30 text-primary hover:bg-primary/5 hover:border-primary/50 transition-colors"
           >
-            <Link href={`/megadata/${collection.id}`}>Manage</Link>
+            <Link href={`/megatokens/editor/${collection.id}`}>Manage</Link>
           </Button>
         </div>
       </CardContent>
@@ -220,7 +220,7 @@ export default function ViewCollectionsPage() {
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">
       <div className="container mx-auto max-w-screen-xl px-6 space-y-12">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-serif mb-5 text-primary font-bold">View Collections</h1>
+          <h1 className="text-5xl md:text-6xl mb-5 text-primary font-bold">View Collections</h1>
           <p className="text-xl text-muted-foreground">
             Browse and manage your Dynamic Token collections.
           </p>

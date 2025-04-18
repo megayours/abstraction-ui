@@ -91,7 +91,7 @@ export default function UserJourney() {
       <div className="absolute inset-0 bg-gradient-to-b from-gray-50 to-white"></div>
       <div className="container mx-auto px-4 relative">
         <div className="text-center mb-4 md:mb-8">
-          <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif mb-2 md:mb-4">Launch an experience</h2>
+          <h2 className="text-2xl md:text-3xl lg:text-4xl mb-2 md:mb-4">Launch an experience</h2>
           <p className="text-sm md:text-base text-muted-foreground max-w-2xl mx-auto">
             Creating your own Megatoken is simple. Follow these steps to build fully programmable assets that go beyond ownership — with dynamic, on-chain metadata.
           </p>

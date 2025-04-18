@@ -8,7 +8,7 @@ export default function HeroSection() {
             <div className="mx-auto px-6 lg:px-8 my-24">
                 <div className="relative z-10">
                     <div className="mx-auto max-w-4xl text-center">
-                        <h1 className="font-serif text-balance text-4xl font-medium md:text-5xl xl:text-7xl">
+                        <h1 className="text-balance text-4xl font-medium md:text-5xl xl:text-7xl">
                             Megahub: The On-Chain Logic Marketplace
                         </h1>
                         <p className="mt-4 text-lg leading-8 text-gray-600 max-w-2xl mx-auto">

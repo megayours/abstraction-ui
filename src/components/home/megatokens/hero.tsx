@@ -83,7 +83,7 @@ export default function HeroSection() {
                             </motion.div>
 
                             <div className="mx-auto max-w-lg text-center lg:ml-0 lg:w-1/2 lg:text-left">
-                                <h1 className="font-serif max-w-2xl text-balance text-4xl font-medium md:text-5xl lg:mt-16 xl:text-7xl">
+                                <h1 className="max-w-2xl text-balance text-4xl font-medium md:text-5xl lg:mt-16 xl:text-7xl">
                                     Megatokens
                                 </h1>
                                 <p className="mt-6 md:mt-6 font-bold">Bring tokens to life.</p>

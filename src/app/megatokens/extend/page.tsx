@@ -69,7 +69,7 @@ export default function ExtendCollectionPage() {
         type: type,
       };
       const newCollection = await megadataApi.createExternalCollection(payload);
-      router.push(`/megadata/${newCollection.id}`);
+      router.push(`/megatokens/editor/${newCollection.id}`);
     } catch (err) {
       console.error("Failed to extend collection:", err);
       setError(`Failed to extend collection: ${err instanceof Error ? err.message : 'Unknown error'}`);
@@ -81,7 +81,7 @@ export default function ExtendCollectionPage() {
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">
       <div className="container mx-auto max-w-screen-xl px-6 space-y-12">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-serif mb-5 text-primary font-bold">Extend Collection</h1>
+          <h1 className="text-5xl md:text-6xl mb-5 text-primary font-bold">Extend Collection</h1>
           <p className="text-xl text-muted-foreground">
             Add dynamic metadata capabilities to an existing collection.
           </p>

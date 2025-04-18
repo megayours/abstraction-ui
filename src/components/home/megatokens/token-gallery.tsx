@@ -42,7 +42,7 @@ export default function TokenGallery() {
 
   return (
     <section id="token-gallery" className="relative py-16 min-h-[80vh] flex flex-col items-center justify-center">
-      <h2 className="text-2xl md:text-3xl lg:text-4xl font-serif mb-2 md:mb-4">
+      <h2 className="text-2xl md:text-3xl lg:text-4xl mb-2 md:mb-4">
         Current experiences
       </h2>
       <div className="mx-auto max-w-3xl py-4 px-4 lg:px-6">
@@ -61,7 +61,7 @@ export default function TokenGallery() {
               >
                 {/* Featured (large) image with glow */}
                 <a
-                  href={`/megadata/${featured.collection_id}`}
+                  href={`/megatokens/editor/${featured.collection_id}`}
                   tabIndex={0}
                   className={`col-span-2 row-span-2 overflow-hidden flex items-center justify-center group aspect-square ${cardBase} ${hoverEffect} ${featuredGlow} lg:col-span-2 lg:row-span-2`}
                   aria-label="View collection"
@@ -78,7 +78,7 @@ export default function TokenGallery() {
                 {displayTokens.map((token, i) => (
                   <a
                     key={token.id}
-                    href={`/megadata/${token.collection_id}`}
+                    href={`/megatokens/editor/${token.collection_id}`}
                     tabIndex={0}
                     className={`rounded-2xl overflow-hidden flex items-center justify-center group aspect-square ${cardBase} ${hoverEffect}`}
                     aria-label="View collection"

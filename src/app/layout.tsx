@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Playfair_Display, Radio_Canada } from "next/font/google";
 import "./globals.css";
 import { HeroHeader } from "@/components/navbar";
 import { GoogleAnalytics } from "@next/third-parties/google";
@@ -8,14 +8,16 @@ import { WalletProvider } from "@/contexts/WalletContext";
 import { Web3AuthProvider } from '@/providers/web3auth-provider';
 import { ChainProvider } from '@/providers/chain-provider';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const radioCanada = Radio_Canada({
+  variable: "--font-radio-canada",
   subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const playfairDisplay = Playfair_Display({
+  variable: "--font-playfair-display",
   subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -46,9 +48,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className={`${radioCanada.variable} ${playfairDisplay.variable} antialiased bg-real-white text-primary`}>
         <ChainProvider>
           <Web3AuthProvider>
             <WalletProvider>

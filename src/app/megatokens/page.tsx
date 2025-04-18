@@ -10,7 +10,7 @@ export default function DynamicNFTsPage() {
     <section className="py-24 md:py-32 bg-gradient-to-b from-background to-blue-50/30 min-h-screen">
       <div className="container mx-auto max-w-screen-xl px-6 space-y-12">
         <div className="text-center max-w-4xl mx-auto">
-          <h1 className="text-5xl md:text-6xl font-serif mb-5 text-primary font-bold">Dynamic Tokens</h1>
+          <h1 className="text-5xl md:text-6xl mb-5 text-primary font-bold">Megatokens</h1>
           <p className="text-xl text-muted-foreground">
             Create, manage, and extend your dynamic token collections with advanced features.
           </p>
