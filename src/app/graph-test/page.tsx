@@ -1,34 +1,38 @@
+"use client";
+
+import TokenGallery from "@/components/home/megatokens/token-gallery";
 import ModuleGraph from "@/components/module-graph/module-graph";
 import ModuleGraphD3 from "@/components/module-graph/module-graph-d3";
 import PageWrapper from "@/components/page-wrapper";
 import { Card } from "@/components/ui/card";
+import { Token } from "@/lib/api/megadata";
+import { useState } from "react";
+
 export default function GraphTest() {
+  const [selectedToken, setSelectedToken] = useState<Token | null>(null);
+
   return (
     <PageWrapper>
-      <Card className="w-full h-full">
-        <h1 className="text-2xl font-bold text-center">React</h1>
-        <ModuleGraph token={{
-          id: "1",
-          collection_id: 1,
-        data: { "id": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8", "uri": "ipfs://bafybeibc5sgo2plmjkq2tzmhrn54bk3crhnc23zd2msg4ea7a4pxrkgfna/0", "name": "Pudgy Penguin #0", "image": "ipfs://QmNf1UsmdGaMbpatQ6toXSkzDpizaGmC9zfunCyoz1enD5/penguin/0.png", "source": "ethereum", "attributes": [{ "value": "Purple", "trait_type": "Background" }, { "value": "Mint", "trait_type": "Skin" }, { "value": "Hoodie Pink", "trait_type": "Body" }, { "value": "Winking", "trait_type": "Face" }, { "value": "Wizard Hat", "trait_type": "Head" }], "description": "A collection 8888 Cute Chubby Pudgy Penquins sliding around on the freezing ETH blockchain." },
-        modules: ["erc721", "extending_metadata", "extending_collection"],
-        is_published: true,
-        created_at: new Date(),
-        updated_at: new Date()
-      }} />
-      </Card>
-      <Card className="w-full h-full">
-        <h1 className="text-2xl font-bold text-center">D3</h1>
-        <ModuleGraphD3 token={{
-          id: "1",
-          collection_id: 1,
-        data: { "id": "0xBd3531dA5CF5857e7CfAA92426877b022e612cf8", "uri": "ipfs://bafybeibc5sgo2plmjkq2tzmhrn54bk3crhnc23zd2msg4ea7a4pxrkgfna/0", "name": "Pudgy Penguin #0", "image": "ipfs://QmNf1UsmdGaMbpatQ6toXSkzDpizaGmC9zfunCyoz1enD5/penguin/0.png", "source": "ethereum", "attributes": [{ "value": "Purple", "trait_type": "Background" }, { "value": "Mint", "trait_type": "Skin" }, { "value": "Hoodie Pink", "trait_type": "Body" }, { "value": "Winking", "trait_type": "Face" }, { "value": "Wizard Hat", "trait_type": "Head" }], "description": "A collection 8888 Cute Chubby Pudgy Penquins sliding around on the freezing ETH blockchain." },
-        modules: ["erc721", "extending_metadata", "extending_collection"],
-        is_published: true,
-        created_at: new Date(),
-        updated_at: new Date()
-      }} />
-      </Card>
+      <div className="flex flex-col lg:flex-row gap-8 items-stretch w-full max-w-6xl mx-auto px-2 md:px-6 py-8">
+        <div className="w-full lg:w-1/2 flex flex-col items-center">
+          <TokenGallery 
+            onTokenSelect={setSelectedToken} 
+            selectedToken={selectedToken}
+            instructionBanner={
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-[#F8F1DB] text-[#2A4A59] text-base font-medium shadow-sm border border-[#E9D973]/40 mx-auto my-2">
+                <svg width={20} height={20} fill="none" viewBox="0 0 24 24" stroke="#E9D973" className="inline-block mr-2">
+                  <circle cx={12} cy={12} r={10} stroke="#E9D973" strokeWidth={2} fill="#fffbe6" />
+                  <path d="M8 12h8M12 8v8" stroke="#E9D973" strokeWidth={2} strokeLinecap="round" />
+                </svg>
+                Click an experience to explore its graph
+              </div>
+            }
+          />
+        </div>
+        <div className="w-full lg:w-1/2 flex items-center justify-center pt-0 lg:pt-24">
+          <ModuleGraphD3 token={selectedToken} />
+        </div>
+      </div>
     </PageWrapper>
   )
 }
