@@ -3,6 +3,8 @@
 import React, { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { getModule, Module, Token } from "@/lib/api/megadata";
+import { isUrl } from "@/lib/utils/url-detection";
+import { ContentRenderer } from "@/components/renderers";
 
 type ModuleGraphProps = {
   token: Token | null;
@@ -22,11 +24,32 @@ interface D3Link extends d3.SimulationLinkDatum<D3Node> {
   kind: "propertyToModule" | "moduleToToken" | "valueToAttribute";
 }
 
+// Custom colors for nodes
 const NODE_COLORS: Record<string, string> = {
   token: "#2A4A59",
   module: "#AAC4E7",
   attribute: "#C7B29A",
   value: "#E9D973",
+};
+
+// Custom icons for different node types
+const NODE_ICONS: Record<string, { path: string, viewBox: string }> = {
+  token: {
+    viewBox: "0 0 24 24",
+    path: "M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 3c3.86 0 7 3.14 7 7s-3.14 7-7 7-7-3.14-7-7 3.14-7 7-7zm0 3a4 4 0 100 8 4 4 0 000-8z"
+  },
+  module: {
+    viewBox: "0 0 24 24",
+    path: "M3 3h18a1 1 0 011 1v16a1 1 0 01-1 1H3a1 1 0 01-1-1V4a1 1 0 011-1zm1 2v14h16V5H4zm2 2h12v2H6V7zm0 4h12v2H6v-2z"
+  },
+  attribute: {
+    viewBox: "0 0 24 24",
+    path: "M4 19h4v-4H4v4zm6 0h4v-4h-4v4zm6 0h4v-4h-4v4zM4 13h4V9H4v4zm6 0h4V9h-4v4zm6 0h4V9h-4v4zM4 7h4V3H4v4zm6 0h4V3h-4v4zm6 0h4V3h-4v4z"
+  },
+  value: {
+    viewBox: "0 0 24 24", 
+    path: "M20 3H4c-1.103 0-2 .897-2 2v14c0 1.103.897 2 2 2h16c1.103 0 2-.897 2-2V5c0-1.103-.897-2-2-2zM4 19V5h16l.002 14H4z M6 7h12v2H6V7zm0 4h12v2H6v-4zm0 6h6v2H6v-2z"
+  }
 };
 
 export default function ModuleGraphD3({ token }: ModuleGraphProps) {
@@ -47,6 +70,10 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalDimensions, setModalDimensions] = useState<{ width: number; height: number }>({ width: 0, height: 0 });
+
+  // Add a modal for showing images or other content when clicking on value nodes
+  const [selectedValue, setSelectedValue] = useState<string | null>(null);
+  const [isContentModalOpen, setIsContentModalOpen] = useState(false);
 
   // Function to open modal
   const openModal = () => {
@@ -70,6 +97,12 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
     setShowValueNodes(false);
     setShowAttributeNodes(false); // Hide attribute nodes when closing modal
     setShowAllLabels(false);
+  };
+
+  // Function to close content modal
+  const closeContentModal = () => {
+    setIsContentModalOpen(false);
+    setSelectedValue(null);
   };
 
   // Resize observer for responsive SVG
@@ -694,7 +727,51 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
       simulation.tick();
     }
 
-    // MISSING RENDERING CODE: Draw links between nodes
+    // Add icon defs to SVG for reuse
+    const defs = svg.append("defs");
+    
+    // Add definitions for each icon type
+    Object.entries(NODE_ICONS).forEach(([type, icon]) => {
+      defs.append("symbol")
+        .attr("id", `icon-${type}`)
+        .attr("viewBox", icon.viewBox)
+        .append("path")
+        .attr("d", icon.path)
+        .attr("fill", "currentColor");
+    });
+    
+    // Add glow filter for highlighting
+    defs.append("filter")
+      .attr("id", "glow")
+      .append("feGaussianBlur")
+      .attr("stdDeviation", "2.5")
+      .attr("result", "coloredBlur");
+    
+    const feMerge = defs.append("filter")
+      .attr("id", "glow")
+      .append("feMerge");
+    
+    feMerge.append("feMergeNode")
+      .attr("in", "coloredBlur");
+    feMerge.append("feMergeNode")
+      .attr("in", "SourceGraphic");
+
+    // Draw node highlights/glows (for better visibility)
+    const nodeHighlights = g
+      .append("g")
+      .attr("class", "node-highlights")
+      .selectAll("circle")
+      .data(nodes.filter(d => d.type === "value" && isUrl(d.label)))
+      .enter()
+      .append("circle")
+      .attr("r", d => nodeRadius * 0.8)
+      .attr("fill", "#E9D973")
+      .attr("opacity", 0.2)
+      .attr("cx", d => d.x || 0)
+      .attr("cy", d => d.y || 0)
+      .attr("filter", "url(#glow)");
+    
+    // Draw links between nodes
     const link = g
       .append("g")
       .attr("class", "links")
@@ -734,15 +811,111 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
         return target ? (target.y || 0) : 0;
       });
 
-    // MISSING RENDERING CODE: Draw nodes
-    const node = g
+    // Draw nodes with improved appearance
+    const nodeGroups = g
       .append("g")
       .attr("class", "nodes")
-      .selectAll("circle")
+      .selectAll("g")
       .data(nodes)
       .enter()
-      .append("circle")
-      .attr("r", (d) => {
+      .append("g")
+      .attr("transform", d => `translate(${d.x || 0}, ${d.y || 0})`)
+      .on("click", (event, d) => {
+        // Add click handler for value nodes
+        if (d.type === "value" && isUrl(d.label)) {
+          event.stopPropagation(); // Prevent opening main modal
+          setSelectedValue(d.label);
+          setIsContentModalOpen(true);
+        }
+      })
+      .style("cursor", d => {
+        // Change cursor for value nodes that are URLs
+        return (d.type === "value" && isUrl(d.label)) ? "pointer" : "default";
+      })
+      // Enhanced hover effects
+      .on("mouseover", function(event, d) {
+        if (d.type === "value" && isUrl(d.label)) {
+          // Highlight node
+          d3.select(this).select("circle")
+            .transition()
+            .duration(200)
+            .attr("stroke", "#0066cc")
+            .attr("stroke-width", 3)
+            .attr("r", function() {
+              const currentRadius = parseFloat(d3.select(this).attr("r"));
+              return currentRadius * 1.2;
+            });
+          
+          // Scale up icon if present
+          d3.select(this).select("use")
+            .transition()
+            .duration(200)
+            .attr("width", nodeRadius * 0.8)
+            .attr("height", nodeRadius * 0.8)
+            .attr("x", -nodeRadius * 0.4)
+            .attr("y", -nodeRadius * 0.4)
+            .attr("opacity", 1);
+          
+          // Add a visual tooltip hint
+          d3.select(this).append("text")
+            .attr("class", "hover-hint")
+            .attr("y", -nodeRadius * 1.5)
+            .attr("text-anchor", "middle")
+            .attr("font-size", "12px")
+            .attr("fill", "#0066cc")
+            .attr("pointer-events", "none")
+            .text("Click to view");
+          
+          // Highlight connected links
+          g.selectAll("line")
+            // Use any type to get around type checking as d3's typing is complex here
+            .filter(function(linkData: any) {
+              return (linkData.source?.id === d.id || linkData.target?.id === d.id) || 
+                     (linkData.source === d.id || linkData.target === d.id);
+            })
+            .transition()
+            .duration(200)
+            .attr("stroke", "#0066cc")
+            .attr("stroke-width", 2)
+            .attr("stroke-opacity", 1);
+        }
+      })
+      .on("mouseout", function(event, d) {
+        if (d.type === "value" && isUrl(d.label)) {
+          // Restore node appearance
+          d3.select(this).select("circle")
+            .transition()
+            .duration(200)
+            .attr("stroke", "#fff")
+            .attr("stroke-width", 1.5)
+            .attr("r", nodeRadius * 0.6);
+          
+          // Restore icon size
+          d3.select(this).select("use")
+            .transition()
+            .duration(200)
+            .attr("width", nodeRadius * 0.6)
+            .attr("height", nodeRadius * 0.6)
+            .attr("x", -nodeRadius * 0.3)
+            .attr("y", -nodeRadius * 0.3)
+            .attr("opacity", 0.8);
+          
+          // Remove hints
+          d3.select(this).select(".hover-hint").remove();
+          
+          // Restore connected links
+          g.selectAll("line")
+            .transition()
+            .duration(200)
+            .attr("stroke", "#999")
+            .attr("stroke-width", 1.5)
+            .attr("stroke-opacity", 0.6);
+        }
+      });
+    
+    // Draw the circles for each node
+    nodeGroups.append("circle")
+      .attr("r", d => {
         // Dynamic radius based on node type and importance
         switch (d.type) {
           case "token":
@@ -758,8 +931,8 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
             return nodeRadius;
         }
       })
-      .attr("fill", (d) => NODE_COLORS[d.type] || "#999")
-      .attr("fill-opacity", (d) => {
+      .attr("fill", d => NODE_COLORS[d.type] || "#999")
+      .attr("fill-opacity", d => {
         // Make attribute nodes nearly invisible when they should be hidden
         if (d.type === "attribute" && !showAttributeNodes && !isModalOpen) {
           return 0.1;
@@ -768,17 +941,79 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
       })
       .attr("stroke", "#fff")
       .attr("stroke-width", 1.5)
-      .attr("stroke-opacity", (d) => {
+      .attr("stroke-opacity", d => {
         // Hide stroke for hidden attribute nodes
         if (d.type === "attribute" && !showAttributeNodes && !isModalOpen) {
           return 0;
         }
         return 1;
+      });
+    
+    // Add icons to nodes for visual distinction
+    nodeGroups
+      .filter(d => isUrl(d.label) || d.type === "token" || d.type === "module")
+      .append("use")
+      .attr("href", d => {
+        if (d.type === "value" && isUrl(d.label)) {
+          return "#icon-value";
+        }
+        return `#icon-${d.type}`;
       })
-      .attr("cx", (d) => d.x || 0)
-      .attr("cy", (d) => d.y || 0);
+      .attr("width", d => {
+        // Make token icon larger and more prominent
+        if (d.type === "token") {
+          return nodeRadius * 0.85;
+        }
+        return nodeRadius * 0.6;
+      })
+      .attr("height", d => {
+        // Make token icon larger and more prominent
+        if (d.type === "token") {
+          return nodeRadius * 0.85;
+        }
+        return nodeRadius * 0.6;
+      })
+      .attr("x", d => {
+        // Center the token icon better
+        if (d.type === "token") {
+          return -nodeRadius * 0.425;
+        }
+        return -nodeRadius * 0.3;
+      })
+      .attr("y", d => {
+        // Center the token icon better
+        if (d.type === "token") {
+          return -nodeRadius * 0.425;
+        }
+        return -nodeRadius * 0.3;
+      })
+      .attr("fill", d => {
+        // Use a more distinctive color for the token icon
+        if (d.type === "token") {
+          return "#ffffff";
+        }
+        return "#fff";
+      })
+      .attr("opacity", d => {
+        // Make token icon more visible
+        if (d.type === "token") {
+          return 0.9;
+        }
+        return 0.8;
+      });
+    
+    // Add special indicator for URL values
+    nodeGroups
+      .filter(d => d.type === "value" && isUrl(d.label))
+      .append("circle")
+      .attr("r", 3)
+      .attr("cx", d => nodeRadius * 0.3)
+      .attr("cy", d => nodeRadius * 0.3)
+      .attr("fill", "#0066cc")
+      .attr("stroke", "#fff")
+      .attr("stroke-width", 1);
 
-    // MISSING RENDERING CODE: Add text labels to nodes
+    // Add labels with improved styling
     const nodeLabels = g
       .append("g")
       .attr("class", "node-labels")
@@ -786,9 +1021,9 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
       .data(nodes)
       .enter()
       .append("text")
-      .text((d) => d.label)
-      .attr("x", (d) => d.x || 0)
-      .attr("y", (d) => {
+      .text(d => d.label)
+      .attr("x", d => d.x || 0)
+      .attr("y", d => {
         const baseY = d.y || 0;
         // Position labels below nodes, adjusted by node type
         switch (d.type) {
@@ -805,7 +1040,7 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
         }
       })
       .attr("text-anchor", "middle")
-      .attr("font-size", (d) => {
+      .attr("font-size", d => {
         // Dynamic font size based on node type and container size
         const baseSize = Math.max(8, Math.min(12, width / 60)) * labelSize;
         switch (d.type) {
@@ -821,7 +1056,7 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
             return baseSize + "px";
         }
       })
-      .attr("fill", (d) => {
+      .attr("fill", d => {
         // Hide labels for attribute and value nodes unless showAllLabels is true
         if (!showAllLabels && d.type === "value") {
           return "transparent";
@@ -830,15 +1065,48 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
         if (d.type === "attribute" && !showAttributeNodes && !isModalOpen) {
           return "transparent";
         }
+        
+        // Visual indicator for URLs (blue text)
+        if (d.type === "value" && isUrl(d.label)) {
+          return "#0066cc";
+        }
+        
         return "#333";
       })
-      .style("pointer-events", "none")
-      .style("user-select", "none")
+      .attr("font-weight", d => (d.type === "token" || d.type === "module") ? "600" : "normal")
+      .attr("pointer-events", "none")
+      .attr("user-select", "none")
       .each(function(d) {
+        // Add white text backdrop for better readability
+        const textNode = d3.select(this).node();
+        if (textNode) {
+          const textBBox = (textNode as SVGTextElement).getBBox();
+          const parentSelection = d3.select(this.parentNode as Element);
+          parentSelection
+            .insert("rect", "text")
+            .attr("x", (d.x || 0) - textBBox.width / 2 - 2)
+            .attr("y", textBBox.y - 1)
+            .attr("width", textBBox.width + 4)
+            .attr("height", textBBox.height + 2)
+            .attr("fill", "white")
+            .attr("fill-opacity", 0.7)
+            .attr("rx", 2)
+            .attr("ry", 2);
+        }
+        
         // Truncate long labels
         const text = d3.select(this);
         const label = d.label;
-        if (label.length > 20) {
+        
+        // Special handling for URLs - show shortened version
+        if (isUrl(label) && label.length > 20) {
+          const urlObj = new URL(label);
+          const domain = urlObj.hostname;
+          const path = urlObj.pathname.length > 10 
+            ? urlObj.pathname.substring(0, 8) + "..." 
+            : urlObj.pathname;
+          text.text(`${domain}${path}`);
+        } else if (label.length > 20) {
           text.text(label.substring(0, 18) + "...");
         }
       });
@@ -947,6 +1215,46 @@ export default function ModuleGraphD3({ token }: ModuleGraphProps) {
                   style={{ display: "block", width: "100%", height: "100%" }}
                 />
               )}
+            </div>
+          </div>
+        </div>
+      )}
+      
+      {/* Content Viewer Modal */}
+      {isContentModalOpen && selectedValue && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-75 z-50 flex items-center justify-center p-4"
+          onClick={closeContentModal}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="content-modal-title"
+        >
+          <div 
+            className="bg-white rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col overflow-hidden shadow-xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-4 border-b">
+              <h3 className="text-lg font-medium truncate max-w-[calc(100%-100px)]" id="content-modal-title">
+                <span className="mr-2 text-gray-500 text-sm">URL:</span> 
+                <a 
+                  href={selectedValue}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-blue-600 hover:underline"
+                >
+                  {selectedValue}
+                </a>
+              </h3>
+              <button
+                onClick={closeContentModal}
+                className="px-3 py-1 text-sm bg-white border border-gray-300 rounded-full hover:bg-gray-50 transition-colors duration-200 flex items-center"
+                aria-label="Close content modal"
+              >
+                <span>Close</span>
+              </button>
+            </div>
+            <div className="flex-grow overflow-auto p-4 flex items-center justify-center bg-gray-50">
+              <ContentRenderer value={selectedValue} className="w-full max-w-full" />
             </div>
           </div>
         </div>
