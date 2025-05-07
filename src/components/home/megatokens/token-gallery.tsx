@@ -9,25 +9,412 @@ interface TokenGalleryProps {
 }
 
 export default function TokenGallery({ onTokenSelect, selectedToken, instructionBanner }: TokenGalleryProps) {
-  const [tokens, setTokens] = useState<Token[]>([]);
+  const [tokens, setTokens] = useState<Token[]>([
+    {
+        collection_id: 2,
+        id: "1020",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1020",
+            name: "Doodle #1020",
+            image: "ipfs://QmX2LeXjT29LQTCizg9FXe6bNrgCZckfQH5ky9pWr4zBKm",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "chill cig",
+                    trait_type: "face"
+                },
+                {
+                    value: "purple puffballs",
+                    trait_type: "hair"
+                },
+                {
+                    value: "blue fleece",
+                    trait_type: "body"
+                },
+                {
+                    value: "blue",
+                    trait_type: "background"
+                },
+                {
+                    value: "pink",
+                    trait_type: "head"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1021",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1021",
+            name: "Doodle #1021",
+            image: "ipfs://QmbuXQ8KMZe5eMo3enGfg8phfpZ5RcMEHCpYWrXypr1hbV",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "green beard",
+                    trait_type: "face"
+                },
+                {
+                    value: "pink",
+                    trait_type: "hair"
+                },
+                {
+                    value: "striped sweater",
+                    trait_type: "body"
+                },
+                {
+                    value: "gradient 4",
+                    trait_type: "background"
+                },
+                {
+                    value: "pale",
+                    trait_type: "head"
+                },
+                {
+                    value: "hoop",
+                    trait_type: "piercing"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1022",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1022",
+            name: "Doodle #1022",
+            image: "ipfs://Qmba6Kp1zsGxAmJ8YSPjpEv9SNqutz9hKZusLznpSDNAzb",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "mustache",
+                    trait_type: "face"
+                },
+                {
+                    value: "blue alfalfa",
+                    trait_type: "hair"
+                },
+                {
+                    value: "navy sweater",
+                    trait_type: "body"
+                },
+                {
+                    value: "purple",
+                    trait_type: "background"
+                },
+                {
+                    value: "med",
+                    trait_type: "head"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1023",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            "uri": "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1023",
+            name: "Doodle #1023",
+            image: "ipfs://QmTJPr9gy9ukr8S1d2LJ5cGRNQL9Lfe9wN99fFckKdS7hZ",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "chill cig",
+                    "trait_type": "face"
+                },
+                {
+                    value: "yellow backwards cap",
+                    trait_type: "hair"
+                },
+                {
+                    value: "blue and yellow jacket",
+                    trait_type: "body"
+                },
+                {
+                    value: "purple",
+                    trait_type: "background"
+                },
+                {
+                    value: "orange",
+                    trait_type: "head"
+                },
+                {
+                    value: "pearl",
+                    trait_type: "piercing"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1024",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1024",
+            name: "Doodle #1024",
+            image: "ipfs://QmYswa8WJs9vxQxKuLTxzKzHFpx5vUAuex3exZjkGJhUTT",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "sad note",
+                    trait_type: "face"
+                },
+                {
+                    value: "yellow bowlcut",
+                    trait_type: "hair"
+                },
+                {
+                    value: "grey hoodie",
+                    trait_type: "body"
+                },
+                {
+                    value: "blue",
+                    trait_type: "background"
+                },
+                {
+                    value: "med",
+                    trait_type: "head"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1025",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1025",
+            name: "Doodle #1025",
+            image: "ipfs://QmYPb4j5N3dyK36B25vBgip6xjXL5233AoLYbePjZUed7f",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "aviators with mustache",
+                    trait_type: "face"
+                },
+                {
+                    value: "space",
+                    trait_type: "background"
+                },
+                {
+                    value: "pickle",
+                    trait_type: "head"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1026",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1026",
+            name: "Doodle #1026",
+            image: "ipfs://QmNu2kUgFDrwqLYLFPuJSByvq3tWZeW2eWsZXimPTn5oDe",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "mustache",
+                    trait_type: "face"
+                },
+                {
+                    value: "beige bucket cap",
+                    trait_type: "hair"
+                },
+                {
+                    value: "yellow turtleneck",
+                    trait_type: "body"
+                },
+                {
+                    value: "purple",
+                    trait_type: "background"
+                },
+                {
+                    value: "pale",
+                    trait_type: "head"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1027",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1027",
+            name: "Doodle #1027",
+            image: "ipfs://QmZesUdHjnPyMb4wZVa2wqEMoYmDeDfGC8dCp91AVKHcTL",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "aviators with cig",
+                    trait_type: "face"
+                },
+                {
+                    value: "halo",
+                    trait_type: "hair"
+                },
+                {
+                    value: "yellow backpack",
+                    trait_type: "body"
+                },
+                {
+                    value: "holographic",
+                    trait_type: "background"
+                },
+                {
+                    value: "yellow",
+                    trait_type: "head"
+                },
+                {
+                    value: "hoop",
+                    trait_type: "piercing"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    },
+    {
+        collection_id: 2,
+        id: "1028",
+        is_published: true,
+        created_at: new Date(),
+        updated_at: new Date(),
+        data: {
+            id: "0x8a90cab2b38dba80c64b7734e58ee1db38b8992e",
+            uri: "ipfs://QmPMc4tcBsMqLRuCQtPmPe84bpSjrC3Ky7t3JWuHXYB4aS/1028",
+            name: "Doodle #1028",
+            image: "ipfs://QmYuXMja91161KoV7bQyP98PjQKu3BMLrm5wMJ4pVTiJ3K",
+            source: "ethereum",
+            attributes: [
+                {
+                    value: "designer glasses",
+                    trait_type: "face"
+                },
+                {
+                    value: "pink tidy",
+                    trait_type: "hair"
+                },
+                {
+                    value: "light blue puffer",
+                    trait_type: "body"
+                },
+                {
+                    value: "green",
+                    trait_type: "background"
+                },
+                {
+                    value: "purple",
+                    trait_type: "head"
+                },
+                {
+                    value: "hoop",
+                    trait_type: "piercing"
+                }
+            ],
+            description: "A community-driven collectibles project featuring art by Burnt Toast. Doodles come in a joyful range of colors, traits and sizes with a collection size of 10,000. Each Doodle allows its owner to vote for experiences and activations paid for by the Doodles Community Treasury. Burnt Toast is the working alias for Scott Martin, a Canadian–based illustrator, designer, animator and muralist."
+        },
+        modules: [
+            "erc721",
+            "extending_collection",
+            "extending_metadata"
+        ]
+    }
+]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    setLoading(true);
-    getRandomTokensByAttribute('image', 9)
-      .then((data) => {
-        // Only keep tokens with a valid image string
-        const filtered = data.filter(
-          (token) => typeof token.data?.image === 'string' && token.data.image.length > 0
-        );
-        setTokens(filtered);
-        if (!selectedToken) {
-          onTokenSelect?.(filtered[0]);
-        }
-      })
-      .catch(() => setTokens([]))
-      .finally(() => setLoading(false));
-  }, [onTokenSelect]);
+  // useEffect(() => {
+  //   setLoading(true);
+  //   getRandomTokensByAttribute('image', 9)
+  //     .then((data) => {
+  //       // Only keep tokens with a valid image string
+  //       const filtered = data.filter(
+  //         (token) => typeof token.data?.image === 'string' && token.data.image.length > 0
+  //       );
+  //       setTokens(filtered);
+  //       if (!selectedToken) {
+  //         onTokenSelect?.(filtered[0]);
+  //       }
+  //     })
+  //     .catch(() => setTokens([]))
+  //     .finally(() => setLoading(false));
+  // }, [onTokenSelect]);
 
   // Don't shuffle tokens on each render, instead cache them in a stable order
   const [featured, ...others] = tokens;
