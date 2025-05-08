@@ -437,7 +437,7 @@ export default function TokenGallery({ onTokenSelect, selectedToken, instruction
 
   const imageUri = (uri: string) => {
     if (uri.startsWith('ipfs://')) {
-      return `https://ipfs.io/ipfs/${uri.slice(7)}`;
+      return `https://router1.testnet.megayours.com/ext/${uri}`;
     }
     return uri;
   }
