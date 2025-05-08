@@ -397,7 +397,13 @@ export default function TokenGallery({ onTokenSelect, selectedToken, instruction
         ]
     }
 ]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (onTokenSelect) {
+      onTokenSelect(tokens[0]);
+    }
+  }, [tokens, onTokenSelect]);
 
   // useEffect(() => {
   //   setLoading(true);
