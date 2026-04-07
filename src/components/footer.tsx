@@ -3,6 +3,10 @@ import Link from 'next/link'
 
 const footerLinks = [
     {
+        title: 'Privacy Policy',
+        href: '/privacy-policy',
+    },
+    {
         title: 'Whitepaper',
         href: links.whitepaper,
     },
